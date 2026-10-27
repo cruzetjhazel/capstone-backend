@@ -1,59 +1,132 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Photography Booking System – Backend API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**A Web-based Centralized Photography Booking System for Photographers of Bulan, Sorsogon with Dynamic Package Customization and Rating System**
 
-## About Laravel
+![Backend tests](https://img.shields.io/badge/backend%20tests-508%20passed-brightgreen)
+![E2E tests](https://img.shields.io/badge/e2e%20tests-60%20passed-brightgreen)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Laravel REST API for the photography booking platform. The React + TypeScript client lives in the companion repo **`capstone-frontend`**.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Key Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Client, photographer and admin roles with email verification, password reset, suspension and appeals
+- Photographer applications (freelance and studio) with admin review, revision requests and reapplication
+- Fixed packages, **dynamic custom packages** (fixed, hourly, per-day and per-person pricing), add-ons and multi-session bookings
+- Availability windows, blocked dates, slot conflicts, waitlist and slot offers
+- Booking lifecycle: request, accept or decline, expiry, budget negotiation, reschedule, modify, cancel, no-show reports with admin review
+- GCash payment submission and verification, onsite balance recording and refund recording
+- Service tracker, reviews and ratings, notifications, reports, dashboards and activity logs
 
-## Learning Laravel
+## Project Snapshot
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Automated test results (latest recorded run)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Layer | Repo | Framework | Environment | Tests | Passed | Failed | Duration |
+|---|---|---|---|---:|---:|---:|---:|
+| Backend (API) | `casptone-backend` | Laravel `php artisan test` (Unit + Feature) | Local, test database | 508 |  508 | 0 | 140.72 s |
+| Frontend (E2E) | `capstone-frontend` | Playwright | Chromium, real Laravel API + seeded data | 60 |  60 | 0 | 20.9 min |
+| **Total** | | | | **568** |  **568** | **0** | |
 
-## Laravel Sponsors
+The backend run reports 1,968 assertions.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Documentation snapshot
 
-### Premium Partners
+| Document | Scope | Result |
+|---|---|---|
+| Manual test cases | 130 designed cases in 13 modules | 106 passed manually · 24 not yet run manually (all 24 now have automated coverage, see [reconciliation](#manual-cases-not-yet-run-vs-automated-coverage)) · 0 failed |
+| Bug report | 18 bugs across 3 prototypes | 13 fixed · 2 for enhancement · 2 open · 1 status not recorded |
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+##  Getting Started
 
-## Contributing
+```bash
+composer install
+copy .env.example .env      # use cp on macOS/Linux
+php artisan key:generate
+# set your database credentials in .env, then:
+php artisan migrate --seed
+php artisan serve
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Automated Testing
 
-## Code of Conduct
+Backend and end-to-end suites both pass in full. This repo owns the backend suite; the e2e suite lives in `capstone-frontend`.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Backend – Laravel (508 tests, all passing)
 
-## Security Vulnerabilities
+```bash
+php artisan test
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+| Area | Test classes | Tests | Result |
+|---|---:|---:|---|
+| Accounts, auth and sessions | 9 | 57 |  all passed |
+| Photographer applications and profiles | 6 | 46 |  all passed |
+| Packages, custom packages and add-ons | 4 | 59 |  all passed |
+| Availability and public discovery | 7 | 53 |  all passed |
+| Booking creation and multi-session | 3 | 24 |  all passed |
+| Booking lifecycle, expiry and service tracker | 3 | 36 |  all passed |
+| Change requests, cancellation and no-show | 4 | 73 |  all passed |
+| Budget negotiation | 1 | 28 |  all passed |
+| Waitlist and slot offers | 2 | 60 |  all passed |
+| Payments and refunds | 5 | 45 |  all passed |
+| Notifications | 4 | 17 |  all passed |
+| Unit tests and smoke | 6 | 10 |  all passed |
+| **Total** | **54** | **508** |  **508 passed (1,968 assertions)** |
 
-## License
+### Frontend E2E – Playwright (60 tests, all passing)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Summary of the companion suite, which runs against this API with seeded data. Full detail is in the `capstone-frontend` README.
+
+| Spec group | Tests |
+|---|---:|
+| No-show reports and too-soon accept | 5 |
+| Booking form: extra sessions | 2 |
+| Custom package charge methods | 9 |
+| Package: outdoor / on-location price | 3 |
+| Regular package: maximum sessions | 5 |
+| Custom package: maximum sessions | 4 |
+| Real seeded Laravel read-only smoke | 8 |
+| Not shown in supplied screenshot | 24 |
+| **Total** | **60 ** |
+
+##  Manual Test Case Documentation
+
+The manual document (`docs/test-case.docx`) holds 130 designed test cases with *What to test*, *Expected result*, *Actual result* and *Status* for each. It is a **snapshot of the last manual pass**, written after most of the system was built, so it is **not** the source of truth for what currently works. Use the automated results above for that.
+
+| Module | Designed | Passed (manual) | Not tested (manual) |
+|---|---:|---:|---:|
+| Authentication and Account Status | 30 | 30 | 0 |
+| Profile, Settings, Portfolio and Application | 12 | 12 | 0 |
+| Packages, Custom Packages and Add-ons | 14 | 8 | 6 |
+| Availability and Waitlist | 12 | 4 | 8 |
+| Explore and Favorites | 4 | 3 | 1 |
+| Booking | 18 | 13 | 5 |
+| Booking Management | 10 | 9 | 1 |
+| Payments | 10 | 7 | 3 |
+| Service Process | 2 | 2 | 0 |
+| Reviews and Ratings | 3 | 3 | 0 |
+| Notifications | 4 | 4 | 0 |
+| Reports | 2 | 2 | 0 |
+| Dashboards, Analytics, Logs and Settings | 9 | 9 | 0 |
+| **Total** | **130** | **106** | **24** |
+
+## Bug Report
+
+Full details are in `docs/bug-report.docx`. Bugs were reported by panelists and testers across three prototype rounds.
+
+| Metric | Count |
+|---|---:|
+| Bugs logged | **18** |
+| Fixed | 13 |
+| For Enhancement | 2 |
+| Open | 2 |
+| Status not recorded | 1 |
+| Severity – High / Medium / Low | 10 / 6 / 2 |
+
+<br>
+
+## Proponents
+
+Muring, Erica G. · Cruzet, Jhazel G. · Demetrial, Chariza Mae · Palacio, Patrick B.
+
+*A Web-based Centralized Photography Booking System for Photographers of Bulan, Sorsogon with Dynamic Package Customization and Rating System*
