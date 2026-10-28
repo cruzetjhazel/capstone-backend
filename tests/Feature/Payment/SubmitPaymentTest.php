@@ -140,6 +140,58 @@ class SubmitPaymentTest extends TestCase
         $this->assertNotSame('fully_paid', $second->fresh()->payment_status?->value);
     }
 
+    public function test_a_reference_still_awaiting_review_on_another_booking_cannot_be_used_again(): void
+    {
+        $first = $this->acceptedBooking(10000);
+        Sanctum::actingAs($first->client);
+        $this->postJson("/api/client/bookings/{$first->id}/payments", $this->payload('1000000000007'))
+            ->assertCreated(); // left pending on purpose
+
+        $second = $this->acceptedBooking(10000);
+        Sanctum::actingAs($second->client);
+
+        $this->postJson("/api/client/bookings/{$second->id}/payments", $this->payload('1000000000007', 'full', 10000, 'John Roe'))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['reference_number']);
+
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertEquals('pending', $second->fresh()->payment_status->value);
+    }
+
+    public function test_a_rejected_reference_can_be_used_on_another_booking(): void
+    {
+        $first = $this->acceptedBooking(10000);
+        Sanctum::actingAs($first->client);
+        $paymentId = $this->postJson("/api/client/bookings/{$first->id}/payments", $this->payload('1000000000008'))
+            ->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($first->photographer);
+        $this->postJson("/api/photographer/payments/{$paymentId}/reject", ['notes' => 'Not in my GCash history.'])
+            ->assertOk();
+
+        $second = $this->acceptedBooking(10000);
+        Sanctum::actingAs($second->client);
+
+        $this->postJson("/api/client/bookings/{$second->id}/payments", $this->payload('1000000000008', 'full', 10000, 'John Roe'))
+            ->assertCreated();
+    }
+
+    public function test_same_booking_can_resubmit_the_same_reference_after_a_rejection(): void
+    {
+        $booking = $this->acceptedBooking(10000);
+        Sanctum::actingAs($booking->client);
+        $paymentId = $this->postJson("/api/client/bookings/{$booking->id}/payments", $this->payload('1000000000009'))
+            ->assertCreated()->json('data.id');
+
+        Sanctum::actingAs($booking->photographer);
+        $this->postJson("/api/photographer/payments/{$paymentId}/reject", ['notes' => 'Wrong amount shown.'])
+            ->assertOk();
+
+        Sanctum::actingAs($booking->client);
+        $this->postJson("/api/client/bookings/{$booking->id}/payments", $this->payload('1000000000009'))
+            ->assertCreated();
+    }
+
     public function test_cannot_pay_for_a_booking_that_is_not_accepted(): void
     {
         $photographer = User::factory()->photographer()->create();

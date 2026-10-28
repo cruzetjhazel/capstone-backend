@@ -55,6 +55,7 @@ class DecideBookingModificationAction
             description: $decision === CancellationDecision::Approved
                 ? "Approved the detail changes for booking #{$fresh->id}"
                 : "Declined the detail changes for booking #{$fresh->id}",
+            metadata: ['changes' => $fresh->modification_changes, 'reason' => $fresh->modification_reason],
         );
 
         return $fresh;

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
         // Auto-advances service_status to Upcoming once payment settles —
         // see BookingObserver::saved().
         Booking::observe(BookingObserver::class);
+
+        // One password rule everywhere: at least 8 characters, with letters and numbers.
+        Password::defaults(fn () => Password::min(8)->letters()->numbers());
                 if (app()->environment('production')) {
             URL::forceScheme('https');
         }

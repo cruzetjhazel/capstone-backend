@@ -76,6 +76,57 @@ class PackageTest extends TestCase
         $this->postJson('/api/photographer/packages', $payload)->assertStatus(422);
     }
 
+    public function test_price_of_zero_is_rejected(): void
+    {
+        Sanctum::actingAs($this->approvedPhotographer());
+
+        $payload = $this->validPayload();
+        $payload['name'] = 'Free package';
+        $payload['price'] = 0;
+
+        $this->postJson('/api/photographer/packages', $payload)->assertStatus(422);
+        $this->assertDatabaseMissing('packages', ['name' => 'Free package']);
+    }
+
+    public function test_max_sessions_can_be_up_to_15_but_not_more(): void
+    {
+        Sanctum::actingAs($this->approvedPhotographer());
+
+        $allowed = $this->validPayload();
+        $allowed['allows_multiple_sessions'] = true;
+        $allowed['max_sessions'] = 15;
+        $this->postJson('/api/photographer/packages', $allowed)->assertCreated();
+
+        $tooMany = $this->validPayload();
+        $tooMany['name'] = 'Too many sessions';
+        $tooMany['allows_multiple_sessions'] = true;
+        $tooMany['max_sessions'] = 16;
+        $this->postJson('/api/photographer/packages', $tooMany)->assertStatus(422);
+        $this->assertDatabaseMissing('packages', ['name' => 'Too many sessions']);
+    }
+
+    public function test_outdoor_price_of_zero_is_rejected(): void
+    {
+        Sanctum::actingAs($this->approvedPhotographer());
+
+        $payload = $this->validPayload();
+        $payload['name'] = 'Free outdoor package';
+        $payload['outdoor_price'] = 0;
+
+        $this->postJson('/api/photographer/packages', $payload)->assertStatus(422);
+        $this->assertDatabaseMissing('packages', ['name' => 'Free outdoor package']);
+    }
+
+    public function test_a_positive_outdoor_price_is_accepted(): void
+    {
+        Sanctum::actingAs($this->approvedPhotographer());
+
+        $payload = $this->validPayload();
+        $payload['outdoor_price'] = 12000;
+
+        $this->postJson('/api/photographer/packages', $payload)->assertCreated();
+    }
+
     public function test_duration_validation(): void
     {
         $user = $this->approvedPhotographer();

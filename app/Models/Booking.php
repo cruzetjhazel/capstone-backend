@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\BookingLocationType;
 use App\Enums\BookingPaymentStatus;
 use App\Enums\BookingStatus;
+use App\Enums\BudgetRequestStatus;
 use App\Enums\CancellationDecision;
 use App\Enums\PaymentPlan;
 use App\Enums\ServiceTrackerStatus;
@@ -367,6 +368,39 @@ class Booking extends Model
    {
        return $this->hasMany(BookingBudgetRequest::class);
    }
+
+    // ── Budget negotiation (see BookingBudgetRequest and App\Support\BudgetNegotiation) ──
+
+    /** Photographer terms the client has not answered yet (an expired offer no longer counts). */
+    public function hasBudgetTermsAwaitingClient(): bool
+    {
+        $this->expireStaleBudgetTerms();
+
+        return $this->budgetRequests()->where('status', BudgetRequestStatus::Proposed->value)->exists();
+    }
+
+    /** A budget the photographer has not answered, or terms the client has not answered. */
+    public function hasOpenBudgetNegotiation(): bool
+    {
+        $this->expireStaleBudgetTerms();
+
+        return $this->budgetRequests()->whereIn('status', BudgetRequestStatus::openValues())->exists();
+    }
+
+    /** Close any open budget request, e.g. because the booking was accepted at the listed price. */
+    public function supersedeOpenBudgetRequests(): void
+    {
+        $this->budgetRequests()
+            ->whereIn('status', BudgetRequestStatus::openValues())
+            ->update(['status' => BudgetRequestStatus::Superseded->value]);
+    }
+
+    private function expireStaleBudgetTerms(): void
+    {
+        foreach ($this->budgetRequests()->where('status', BudgetRequestStatus::Proposed->value)->get() as $request) {
+            $request->expireIfStale();
+        }
+    }
 
    public function isPaymentSettled(): bool
     {

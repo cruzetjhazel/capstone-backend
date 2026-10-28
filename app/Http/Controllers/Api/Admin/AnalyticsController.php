@@ -49,6 +49,9 @@ class AnalyticsController extends Controller
             'health' => $this->health(),
             'reports_resolution' => $this->reportsResolution(),
             'marketplace' => $this->marketplace($now),
+            'most_booked_packages' => $this->mostBookedPackages(),
+            'most_favorited_packages' => $this->mostFavoritedPackages(),
+            'most_favorited_photographers' => $this->mostFavoritedPhotographers(),
         ]);
     }
 
@@ -246,6 +249,97 @@ class AnalyticsController extends Controller
             'profile_views_this_month' => ProfileView::whereBetween('viewed_on', [$monthStart, $now])->count(),
             'profile_views_last_month' => ProfileView::whereBetween('viewed_on', [$lastMonthStart, $lastMonthEnd])->count(),
         ];
+    }
+
+    private function mostBookedPackages(): array
+    {
+        $rows = DB::table('bookings')
+            ->selectRaw('package_id, count(*) as total')
+            ->whereIn('status', [BookingStatus::Confirmed->value, BookingStatus::Completed->value])
+            ->whereNotNull('package_id')
+            ->groupBy('package_id')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $packages = \App\Models\Package::with('user.photographerApplication')
+            ->whereIn('id', $rows->pluck('package_id'))
+            ->get()
+            ->keyBy('id');
+
+        return $rows->map(function ($row) use ($packages) {
+            $pkg = $packages->get($row->package_id);
+
+            return [
+                'name' => $pkg?->name ?? 'Removed package',
+                'photographer' => $pkg?->user?->photographerApplication?->business_name ?: ($pkg?->user?->name ?? 'Unknown'),
+                'count' => (int) $row->total,
+            ];
+        })->all();
+    }
+
+    private function mostFavoritedPackages(): array
+    {
+        $rows = \App\Models\FavoritePackage::query()
+            ->selectRaw('package_id, count(*) as total')
+            ->groupBy('package_id')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $packages = \App\Models\Package::with('user.photographerApplication')
+            ->whereIn('id', $rows->pluck('package_id'))
+            ->get()
+            ->keyBy('id');
+
+        return $rows->map(function ($row) use ($packages) {
+            $pkg = $packages->get($row->package_id);
+
+            return [
+                'name' => $pkg?->name ?? 'Removed package',
+                'photographer' => $pkg?->user?->photographerApplication?->business_name ?: ($pkg?->user?->name ?? 'Unknown'),
+                'count' => (int) $row->total,
+            ];
+        })->all();
+    }
+
+    private function mostFavoritedPhotographers(): array
+    {
+        $rows = \App\Models\FavoritePhotographer::query()
+            ->selectRaw('photographer_id, count(*) as total')
+            ->groupBy('photographer_id')
+            ->orderByDesc('total')
+            ->orderBy('photographer_id')
+            ->limit(5)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $users = User::with('photographerApplication')
+            ->whereIn('id', $rows->pluck('photographer_id'))
+            ->get()
+            ->keyBy('id');
+
+        return $rows->map(function ($row) use ($users) {
+            $user = $users->get($row->photographer_id);
+            $type = $user?->photographerApplication?->photographer_type?->value;
+
+            return [
+                'name' => $user?->photographerApplication?->business_name ?: ($user?->name ?? 'Unknown'),
+                'photographer' => $type === 'studio' ? 'Studio' : 'Freelancer',
+                'count' => (int) $row->total,
+            ];
+        })->all();
     }
 
     private function activeProfessionalsQuery()

@@ -124,7 +124,7 @@ class DecideBookingRescheduleAction
             subject: $fresh,
             action: $decision === CancellationDecision::Approved ? 'booking.reschedule_approved' : 'booking.reschedule_rejected',
             description: $decision === CancellationDecision::Approved
-                ? "Approved reschedule for booking #{$fresh->id}"
+                ? "Approved reschedule for booking #{$fresh->id}: {$originalDate} {$originalStart} → {$fresh->event_date->format('Y-m-d')} ".substr((string) $fresh->start_time, 0, 5)
                 : "Declined reschedule request for booking #{$fresh->id}",
         );
 

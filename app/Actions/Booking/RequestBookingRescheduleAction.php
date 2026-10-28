@@ -111,7 +111,7 @@ class RequestBookingRescheduleAction
             causer: $fresh->client,
             subject: $fresh,
             action: 'booking.reschedule_requested',
-            description: "Requested reschedule to {$eventDate} {$startTime} for booking #{$fresh->id}",
+            description: "Requested reschedule to {$eventDate} {$startTime} for booking #{$fresh->id} — reason: {$reason}",
             metadata: ['reason' => $reason],
         );
 

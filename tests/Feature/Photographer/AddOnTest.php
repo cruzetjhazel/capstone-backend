@@ -63,6 +63,29 @@ class AddOnTest extends TestCase
         $this->postJson('/api/photographer/add-ons', ['name' => '', 'price' => -1])->assertStatus(422);
     }
 
+    public function test_add_on_price_of_zero_is_allowed(): void
+    {
+        $user = $this->approvedPhotographer();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/photographer/add-ons', ['name' => 'Free extra print', 'price' => 0])->assertCreated();
+        $this->assertDatabaseHas('add_ons', ['user_id' => $user->id, 'name' => 'Free extra print']);
+    }
+
+    public function test_add_on_without_a_name_is_rejected(): void
+    {
+        Sanctum::actingAs($this->approvedPhotographer());
+
+        $this->postJson('/api/photographer/add-ons', ['name' => '', 'price' => 500])->assertStatus(422);
+    }
+
+    public function test_add_on_with_a_negative_price_is_rejected(): void
+    {
+        Sanctum::actingAs($this->approvedPhotographer());
+
+        $this->postJson('/api/photographer/add-ons', ['name' => 'Negative extra', 'price' => -1])->assertStatus(422);
+    }
+
     public function test_photographer_can_update_an_add_on(): void
     {
         $user = $this->approvedPhotographer();

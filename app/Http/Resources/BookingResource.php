@@ -78,6 +78,20 @@ class BookingResource extends JsonResource
                 'approved_by' => $r->approved_by,
                 'decided_at' => $r->decided_at,
             ])->values(),
+            // What was asked, decided and why: reschedules, modifications and cancellations, from the activity log.
+            'history' => \App\Models\ActivityLog::query()
+                ->where('subject_type', \App\Models\Booking::class)
+                ->where('subject_id', $this->id)
+                ->where(fn ($q) => $q->where('action', 'like', 'booking.reschedule_%')
+                    ->orWhere('action', 'like', 'booking.modification_%')
+                    ->orWhere('action', 'like', 'booking.cancellation_%')
+                    ->orWhere('action', 'booking.cancelled'))
+                ->oldest('created_at')->get()
+                ->map(fn ($log) => [
+                    'action' => $log->action,
+                    'description' => $log->description,
+                    'date' => $log->created_at?->toISOString(),
+                ])->values(),
             'reschedule_request' => $this->reschedule_requested_at ? [
                 'requested_event_date' => $this->requested_event_date?->format('Y-m-d'),
                 'requested_start_time' => $this->requested_start_time,

@@ -31,6 +31,8 @@ class AnalyticsController extends Controller
             'monthly' => $this->monthlyTrend($photographerId),
             'service_mix' => $this->serviceMix($photographerId),
             'top_clients' => $this->topClients($photographerId),
+            'most_booked_packages' => $this->mostBookedPackages($photographerId),
+            'most_favorited_packages' => $this->mostFavoritedPackages($photographerId),
         ]);
     }
 
@@ -151,6 +153,49 @@ class AnalyticsController extends Controller
             ->take(4)
             ->values()
             ->all();
+    }
+
+    private function mostFavoritedPackages(int $photographerId): array
+    {
+        $packages = \App\Models\Package::where('user_id', $photographerId)
+            ->where('status', '!=', \App\Enums\PackageStatus::Archived)
+            ->pluck('name', 'id');
+
+        if ($packages->isEmpty()) {
+            return [];
+        }
+
+        return \App\Models\FavoritePackage::whereIn('package_id', $packages->keys())
+            ->selectRaw('package_id, count(*) as total')
+            ->groupBy('package_id')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get()
+            ->map(fn ($r) => ['name' => $packages[$r->package_id], 'count' => (int) $r->total])
+            ->all();
+    }
+
+    private function mostBookedPackages(int $photographerId): array
+    {
+        $rows = Booking::where('photographer_id', $photographerId)
+            ->whereIn('status', self::REVENUE_STATUSES)
+            ->whereNotNull('package_id')
+            ->selectRaw('package_id, count(*) as total')
+            ->groupBy('package_id')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $names = \App\Models\Package::whereIn('id', $rows->pluck('package_id'))->pluck('name', 'id');
+
+        return $rows->map(fn ($r) => [
+            'name' => $names[$r->package_id] ?? 'Removed package',
+            'count' => (int) $r->total,
+        ])->all();
     }
 
     private function pctChange(float $previous, float $current): ?float

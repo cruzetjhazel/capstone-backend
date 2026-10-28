@@ -25,7 +25,7 @@ class BookingController extends Controller
         'completed' => 'Completed',
         'expired' => 'Expired',
         'not_completed' => 'Not Completed',
-        'no_show' => 'No Show',
+        'no_show' => 'Not Completed',
     ];
 
     private const PAYMENT_STATUS_LABELS = [
@@ -215,7 +215,11 @@ class BookingController extends Controller
             'description' => 'Booking force-cancelled by administrator.'.($request->filled('reason') ? ' Reason: '.$request->input('reason') : ''),
         ]);
 
-        return $this->success($this->mapBooking($booking->fresh(['client', 'photographer', 'package'])), 'Booking cancelled.');
+        $fresh = $booking->fresh(['client', 'photographer', 'package']);
+        $fresh->client?->notify(new \App\Notifications\Booking\BookingCancelledNotification($fresh));
+        $fresh->photographer?->notify(new \App\Notifications\Booking\BookingCancelledNotification($fresh));
+
+        return $this->success($this->mapBooking($fresh), 'Booking cancelled.');
     }
 
     private function mapBooking(Booking $b): array

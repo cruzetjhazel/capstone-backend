@@ -3,6 +3,7 @@
 namespace App\Actions\Booking;
 
 use App\Actions\ActivityLog\LogActivityAction;
+use App\Actions\Booking\Budget\SendBudgetRequestAction;
 use App\Enums\AddOnStatus;
 use App\Enums\BookingLocationType;
 use App\Enums\BookingPaymentStatus;
@@ -32,6 +33,12 @@ class CreateBookingAction
 
     public function execute(User $client, array $data): Booking
     {
+        if (! $client->hasVerifiedEmail()) {
+            throw ValidationException::withMessages([
+                'email' => ['Please verify your email address before booking.'],
+            ]);
+        }
+
         $photographer = User::findOrFail($data['photographer_id']);
 
         if (! $this->bookabilityService->isBookable($photographer)) {
@@ -54,6 +61,16 @@ class CreateBookingAction
 
         $platformFee = (float) config('platform.fee', 30.00);
         $totalPrice = $subtotal + $platformFee;
+
+        // Optional budget offer sent with the request (budget_amount / budget_note in
+        // CreateBookingRequest). Checked here, before anything is saved, so a bad
+        // offer can never leave a half-created booking behind.
+        $budgetAmount = isset($data['budget_amount']) && $data['budget_amount'] !== '' ? (float) $data['budget_amount'] : null;
+        if ($budgetAmount !== null && ($budgetAmount <= 0 || $budgetAmount >= $subtotal)) {
+            throw ValidationException::withMessages([
+                'budget_amount' => ['Your budget must be more than 0 and lower than the listed price. Leave it empty to book at the listed price.'],
+            ]);
+        }
 
         // One booking = one package/service. Extra photography sessions are
         // only accepted when the photographer's package explicitly allows
@@ -192,7 +209,7 @@ class CreateBookingAction
         $booking = DB::transaction(function () use (
             $client, $photographer, $packageId, $isCustom, $packageSnapshot,
             $customSnapshot, $customHours, $addOnsSnapshot, $data, $subtotal,
-            $platformFee, $totalPrice, $endTime, $primaryDuration, $additionalSchedules
+            $platformFee, $totalPrice, $endTime, $primaryDuration, $additionalSchedules, $budgetAmount
         ) {
             $photographer = User::where('id', $photographer->id)->lockForUpdate()->firstOrFail();
 
@@ -253,6 +270,13 @@ class CreateBookingAction
                     'event_address' => $schedule['event_address'] ?? null,
                     'sort_order' => $index + 1,
                 ]);
+            }
+
+            // The client's offer (and message) is saved with the booking, in the same transaction.
+            if ($budgetAmount !== null) {
+                app(SendBudgetRequestAction::class)->createForNewBooking(
+                    $booking, $budgetAmount, $data['budget_note'] ?? null
+                );
             }
 
             return $booking;

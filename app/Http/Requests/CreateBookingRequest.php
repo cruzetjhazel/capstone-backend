@@ -56,6 +56,8 @@ class CreateBookingRequest extends FormRequest
             'event_address' => ['required_unless:location_type,studio', 'nullable', 'string', 'max:500'],
             'guest_count' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'special_requests' => ['sometimes', 'nullable', 'string', 'max:2000'],
+'budget_amount' => ['sometimes', 'nullable', 'numeric', 'gt:0', 'max:99999999.99'],
+'budget_note' => ['sometimes', 'nullable', 'string', 'max:1000'],
 
             // Schedule 2+ — separate, non-contiguous photography sessions
             // for this same booking (e.g. Prenup on one date, Wedding on

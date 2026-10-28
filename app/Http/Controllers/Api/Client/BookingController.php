@@ -43,7 +43,23 @@ class BookingController extends Controller
             return $this->error('Please verify your email address before booking a photographer.', 403);
         }
 
-        $booking = $action->execute($request->user(), $request->validated());
+        $data = $request->validated();
+$budgetAmount = $data['budget_amount'] ?? null;
+$budgetNote = $data['budget_note'] ?? null;
+unset($data['budget_amount'], $data['budget_note']);
+
+// The booking and its optional budget request succeed or fail together: a budget that is not
+// lower than the package subtotal rolls the whole booking back with a clear error.
+$booking = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $action, $data, $budgetAmount, $budgetNote) {
+    $booking = $action->execute($request->user(), $data);
+
+    if ($budgetAmount !== null && $budgetAmount !== '') {
+        $booking = app(\App\Actions\Booking\SubmitBudgetRequestAction::class)
+            ->execute($booking, $request->user(), (float) $budgetAmount, $budgetNote);
+    }
+
+    return $booking;
+});
 
         return $this->success(new BookingResource($booking), 'Booking request submitted.', 201);
     }

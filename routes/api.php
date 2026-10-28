@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Api\PublicPhotographerCustomPackageController;
 use App\Http\Controllers\Api\Admin\AnalyticsController as AdminAnalyticsController;
+use App\Http\Controllers\Api\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Api\Photographer\AnalyticsController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\ServiceSearchLogController;
@@ -277,6 +278,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('admin/analytics', [AdminAnalyticsController::class, 'index']);
     Route::get('admin/activity-logs', [ActivityLogController::class, 'index']);
     Route::post('admin/activity-logs/archive', [ActivityLogController::class, 'archive']);
+    Route::get('admin/settings', [AdminSettingsController::class, 'show']);
+    Route::put('admin/settings', [AdminSettingsController::class, 'update']);
 
     Route::prefix('admin/users')->group(function () {
         Route::get('/', [AdminUserController::class, 'index']);

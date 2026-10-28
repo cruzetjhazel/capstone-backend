@@ -106,6 +106,8 @@ class ExpireStaleBookingHoldsAction
                 'hold_expires_at' => null,
             ]);
 
+            $booking->client?->notify(new \App\Notifications\Booking\BookingExpiredNotification($booking, 'no_response'));
+
             $this->activityLogger->execute(
                 causer: null,
                 subject: $booking,
@@ -208,6 +210,8 @@ class ExpireStaleBookingHoldsAction
 
                 continue;
             }
+
+            $booking->client?->notify(new \App\Notifications\Booking\BookingExpiredNotification($booking, 'unpaid'));
 
             $this->activityLogger->execute(
                 causer: null,

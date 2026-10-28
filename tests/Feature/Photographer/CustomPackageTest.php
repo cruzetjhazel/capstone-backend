@@ -56,6 +56,19 @@ class CustomPackageTest extends TestCase
             ->assertJsonPath('data.base_fee', '2000.00');
     }
 
+    public function test_custom_package_max_sessions_is_capped_at_15(): void
+    {
+        Sanctum::actingAs($this->approvedPhotographer());
+
+        $this->patchJson('/api/photographer/custom-package/config', [
+            'enabled' => true, 'base_fee' => 2000, 'allows_multiple_sessions' => true, 'max_sessions' => 15,
+        ])->assertOk();
+
+        $this->patchJson('/api/photographer/custom-package/config', [
+            'enabled' => true, 'base_fee' => 2000, 'allows_multiple_sessions' => true, 'max_sessions' => 16,
+        ])->assertStatus(422);
+    }
+
     public function test_photographer_can_create_a_custom_package_component(): void
     {
         $user = $this->approvedPhotographer();

@@ -45,8 +45,8 @@ class RejectPaymentAction
             $booking = Booking::whereKey($lockedPayment->booking_id)->lockForUpdate()->firstOrFail();
 
             $lockedPayment->update([
-                'matching_status' => PaymentMatchingStatus::Rejected,
-                'verified_by' => $verifier->id,
+                'matching_status' => PaymentMatchingStatus::Rejected,                'matching_status' => PaymentMatchingStatus::Rejected,
+                'active_reference_number' => null, // frees the reference for reuse                'verified_by' => $verifier->id,
                 'verified_at' => now(),
                 'verification_action' => 'rejected',
                 'verification_notes' => $notes,

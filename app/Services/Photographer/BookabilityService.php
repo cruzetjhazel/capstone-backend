@@ -21,6 +21,11 @@ class BookabilityService
             return false;
         }
 
+        // Unverified emails can register, log in and stay active, but are not bookable.
+        if (! $photographer->hasVerifiedEmail()) {
+            return false;
+        }
+
         $checklist = $this->completenessService->evaluate($photographer);
 
         return $checklist['fully_bookable'];

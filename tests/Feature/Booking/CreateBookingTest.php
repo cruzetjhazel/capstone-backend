@@ -97,9 +97,30 @@ class CreateBookingTest extends TestCase
         Sanctum::actingAs($client);
 
         $payload = $this->validPayload($photographer);
-        $payload['start_time'] = '20:00'; // outside 09:00-17:00 window
+        // Usual hours must exist, otherwise the day counts as open all day.
+        \App\Models\BookingHour::create([
+            'user_id' => $photographer->id,
+            'day_of_week' => now()->addDays(10)->dayOfWeek,
+            'start_time' => '09:00',
+            'end_time' => '18:00',
+        ]);
+        $payload['start_time'] = '08:00'; // before opening hours, and the package still fits in the day
 
         $this->postJson('/api/client/bookings', $payload)->assertStatus(422);
+    }
+
+    // BKG-29: the server refuses a blocked date even if the screen is bypassed.
+    public function test_booking_is_rejected_on_a_date_the_photographer_blocked(): void
+    {
+        $photographer = $this->bookablePhotographer();
+        $client = User::factory()->create();
+        Sanctum::actingAs($client);
+
+        $payload = $this->validPayload($photographer);
+        \App\Models\BlockedDate::factory()->for($photographer)->create(['date' => $payload['event_date']]);
+
+        $this->postJson('/api/client/bookings', $payload)->assertStatus(422);
+        $this->assertDatabaseCount('bookings', 0);
     }
 
     // Business rule (revised): a slot is only ever truly "taken" once a

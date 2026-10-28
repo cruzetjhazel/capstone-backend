@@ -64,8 +64,19 @@ class PaymentController extends Controller
     {
         $this->authorizeOwnership($request, $booking);
 
-        $payment = $action->execute($booking, $request->validated());
-
+        try {
+            $payment = $action->execute($booking, $request->validated());
+        } catch (\Illuminate\Database\QueryException $e) {
+            // The unique index caught a simultaneous duplicate submission.
+            if (in_array((string) $e->getCode(), ['23000', '23505'], true)
+                && str_contains($e->getMessage(), 'active_reference_number')) {
+                throw ValidationException::withMessages([
+                    'reference_number' => ['This GCash reference number has already been used for a different booking.'],
+                ]);
+            }
+            throw $e;
+        }
+        
         $message = 'Payment submitted. The photographer will check their GCash account and confirm it.';
 
         return $this->success(new PaymentResource($payment), $message, 201);

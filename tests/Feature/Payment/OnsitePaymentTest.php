@@ -126,6 +126,17 @@ class OnsitePaymentTest extends TestCase
         ])->assertStatus(403);
     }
 
+    public function test_onsite_payment_date_cannot_be_in_the_future(): void
+    {
+        $booking = $this->halfPaidBooking(10000);
+        Sanctum::actingAs($booking->photographer);
+
+        $this->postJson("/api/photographer/bookings/{$booking->id}/payments/onsite", [
+            'amount' => 5000,
+            'payment_date' => now()->addDay()->format('Y-m-d'),
+        ])->assertStatus(422)->assertJsonValidationErrors(['payment_date']);
+    }
+
     public function test_client_cannot_record_onsite_payment(): void
     {
         $booking = $this->halfPaidBooking(10000);

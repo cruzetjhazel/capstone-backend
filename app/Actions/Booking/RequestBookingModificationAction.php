@@ -91,7 +91,7 @@ class RequestBookingModificationAction
             causer: $fresh->client,
             subject: $fresh,
             action: 'booking.modification_requested',
-            description: "Requested to update the details of booking #{$fresh->id}",
+            description: "Requested to update the details of booking #{$fresh->id} — reason: {$reason}",
             metadata: ['changes' => $clean, 'reason' => $reason],
         );
 

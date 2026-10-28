@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterClientRequest;
 use App\Http\Resources\UserResource;
+use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Traits\ApiResponses;
 use Illuminate\Http\Request;
@@ -38,8 +39,10 @@ class AuthController extends Controller
     {
         $throttleKey = 'login-attempts:' . strtolower(trim((string) $request->validated('email')));
 
-        // 5 failed attempts per email per minute, then block until the window expires.
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+        // Limit and lockout time come from Admin > Settings (default: 5 attempts, 60 seconds).
+        $maxAttempts = PlatformSetting::get('login_max_attempts');
+        $lockoutSeconds = PlatformSetting::get('login_lockout_seconds');
+        if (RateLimiter::tooManyAttempts($throttleKey, $maxAttempts)) {
             $retryAfter = RateLimiter::availableIn($throttleKey);
             $message = "Too many login attempts. Please try again in {$retryAfter} seconds.";
 
@@ -54,7 +57,7 @@ class AuthController extends Controller
         $user = User::where('email', $request->validated('email'))->first();
 
         if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
-            RateLimiter::hit($throttleKey, 60);
+            RateLimiter::hit($throttleKey, $lockoutSeconds);
 
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],

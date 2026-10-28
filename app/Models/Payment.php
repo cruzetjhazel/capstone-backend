@@ -17,7 +17,7 @@ class Payment extends Model
     protected $fillable = [
         'booking_id', 'client_id', 'photographer_id',
         'type', 'method', 'plan', 'amount', 'reference_number', 'payer_name', 'payment_date', 'notes',
-        'photographer_payment_reference_id', 'matching_status',
+        'photographer_payment_reference_id', 'matching_status', 'active_reference_number',
         'verified_by', 'verified_at', 'verification_action', 'verification_notes',
         'refund_status', 'refund_amount', 'refund_notes', 'refunded_by', 'refunded_at',
     ];

@@ -53,17 +53,22 @@ class SubmitPaymentAction
             ]);
         }
 
-        // A GCash reference number is unique across all of GCash, so once it
-        // has been verified for ANY booking it can't be used again. Rejected or
-        // still-awaiting attempts are not blocked (typo corrections/retries).
+        // A GCash reference number is unique across all of GCash, so it can't be
+        // used for a different booking while it is awaiting review or after it has
+        // been verified. Only rejected attempts free it up again, and the same
+        // booking may resubmit its own reference after a rejection (typo fix).
         $alreadyUsedElsewhere = Payment::where('reference_number', $data['reference_number'])
             ->where('booking_id', '!=', $booking->id)
-            ->whereIn('matching_status', [PaymentMatchingStatus::Matched, PaymentMatchingStatus::ManuallyVerified])
+            ->whereIn('matching_status', [
+                PaymentMatchingStatus::NotMatched, // awaiting photographer review
+                PaymentMatchingStatus::Matched,
+                PaymentMatchingStatus::ManuallyVerified,
+            ])
             ->exists();
 
         if ($alreadyUsedElsewhere) {
             throw ValidationException::withMessages([
-                'reference_number' => ['This GCash reference number has already been used to pay for a different booking.'],
+                'reference_number' => ['This GCash reference number has already been used for a different booking.'],
             ]);
         }
 
@@ -114,6 +119,7 @@ class SubmitPaymentAction
                 'plan' => $plan->value,
                 'amount' => $data['amount'],
                 'reference_number' => $data['reference_number'],
+                'active_reference_number' => $data['reference_number'], // DB-unique until the payment is rejected
                 'payer_name' => $data['payer_name'],
                 'payment_date' => $data['payment_date'],
                 'matching_status' => PaymentMatchingStatus::NotMatched, // = awaiting photographer confirmation
