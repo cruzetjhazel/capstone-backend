@@ -11,13 +11,23 @@ class BookingResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        // Contact details reach the studio only after it accepts the request (same rule as the client side).
+            $showContact = $request->user()?->id === $this->photographer_id
+                && $this->status !== \App\Enums\BookingStatus::Pending;
+
+            return [
             'id' => $this->id,
+            'is_manual' => $this->is_manual,
             'client' => [
-                'id' => $this->client->id,
-                'name' => $this->client->name,
-                // Only a true/false flag. The client's actual email stays private.
-                'email_verified' => $this->client->email_verified_at !== null,
+                'id' => $this->client?->id,
+                'name' => $this->client?->name ?? $this->walkInClient?->name ?? 'Client',
+                // email_verified is only a flag. The real email and phone go only to this booking's own photographer.
+                'email_verified' => $this->client?->email_verified_at !== null,
+                'is_walk_in' => $this->walk_in_client_id !== null,
+                'walk_in_client_id' => $this->walk_in_client_id,
+                'phone' => $this->walkInClient?->phone
+    ?? ($showContact ? $this->client?->phone_number : null),
+'email' => $this->walkInClient?->email ?? ($showContact ? $this->client?->email : null),
             ],
             'photographer' => ['id' => $this->photographer->id, 'name' => $this->photographer->name],
             'is_custom_package' => $this->is_custom_package,

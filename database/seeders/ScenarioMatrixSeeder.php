@@ -99,7 +99,7 @@ class ScenarioMatrixSeeder extends Seeder
         $b = $this->book('Payment verified (manually approved by admin)', 'Engagement Mini Session', 75, $this->paid(PaymentPlan::Full, BookingPaymentStatus::FullyPaid));
 
         $this->payment($b, PaymentPlan::Full, (float) $b->total_price, [
-            'reference_number' => 'GC'.random_int(1000000000, 9999999999),
+            'reference_number' => (string) random_int(1000000000000, 9999999999999),
             'photographer_payment_reference_id' => null,
             'matching_status' => PaymentMatchingStatus::ManuallyVerified,
             'verified_by' => $this->admin?->id,

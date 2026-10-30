@@ -30,6 +30,7 @@ class ClientController extends Controller
 
         $registered = Booking::query()
             ->where('photographer_id', $photographerId)
+            ->whereNotNull('client_id') // manual bookings belong to walk-in clients, listed below
             ->with('client.clientProfile')
             ->get()
             ->groupBy('client_id')
@@ -129,6 +130,7 @@ class ClientController extends Controller
     {
         abort_unless($walkInClient->photographer_id === $request->user()->id, 403);
         abort_unless($walkInClient->status === 'archived', 422, 'Only archived clients can be permanently deleted.');
+        abort_if($walkInClient->bookings()->exists(), 422, 'This client has recorded bookings, so they cannot be permanently deleted. Keep them archived instead.');
 
         $walkInClient->delete();
 

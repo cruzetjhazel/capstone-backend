@@ -23,7 +23,7 @@ class PaymentController extends Controller
     {
         return $this->success(
             PaymentResource::collection(
-                $request->user()->paymentsAsPhotographer()->with(['booking.client', 'verifiedBy'])->latest()->get()
+                $request->user()->paymentsAsPhotographer()->with(['booking.client', 'booking.walkInClient', 'verifiedBy'])->latest()->get()
             )
         );
     }

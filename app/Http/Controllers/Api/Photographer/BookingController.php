@@ -33,6 +33,14 @@ class BookingController extends Controller
         );
     }
 
+    /** Records a booking the photographer took outside the platform, for one of their walk-in clients. */
+    public function storeManual(\App\Http\Requests\CreateManualBookingRequest $request, \App\Actions\Booking\CreateManualBookingAction $action)
+    {
+        $booking = $action->execute($request->user(), $request->validated());
+
+        return $this->success(new BookingResource($booking), 'Manual booking recorded.', 201);
+    }
+
     public function show(Booking $booking)
     {
         $this->authorize('view', $booking);

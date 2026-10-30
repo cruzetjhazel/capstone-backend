@@ -24,7 +24,7 @@ class PaymentFactory extends Factory
             'method' => 'gcash',
             'plan' => PaymentPlan::Full,
             'amount' => 5000,
-            'reference_number' => strtoupper(fake()->bothify('GC####??####')),
+            'reference_number' => fake()->numerify('#############'),
             'payer_name' => fake()->name(),
             'payment_date' => now()->format('Y-m-d'),
             'notes' => null,

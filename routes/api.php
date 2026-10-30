@@ -172,6 +172,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('clients', [ClientController::class, 'store']);
         Route::patch('clients/{walkInClient}', [ClientController::class, 'update']);
         Route::post('clients/{walkInClient}/archive', [ClientController::class, 'archive']);
+        Route::post('clients/{walkInClient}/restore', [ClientController::class, 'restore']);
+        Route::delete('clients/{walkInClient}', [ClientController::class, 'destroy']);
 
         Route::get('custom-package/config', [CustomPackageController::class, 'showConfig']);
         Route::patch('custom-package/config', [CustomPackageController::class, 'updateConfig']);
@@ -232,6 +234,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('photographer')->group(function () {
         Route::get('bookings', [PhotographerBookingController::class, 'index']);
+        Route::post('bookings/manual', [PhotographerBookingController::class, 'storeManual']);
         Route::get('bookings/{booking}', [PhotographerBookingController::class, 'show']);
         Route::post('bookings/{booking}/accept', [PhotographerBookingController::class, 'accept']);
            Route::post('bookings/{booking}/reject', [PhotographerBookingController::class, 'reject']);

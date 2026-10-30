@@ -22,8 +22,8 @@ class PaymentResource extends JsonResource
                 'remaining_balance' => $this->booking->remainingBalance(),
             ],
             'client' => [
-                'id' => $this->booking->client->id,
-                'name' => $this->booking->client->name,
+                'id' => $this->booking->client?->id,
+                'name' => $this->booking->client?->name ?? $this->booking->walkInClient?->name ?? 'Walk-in client',
             ],
             'event_type' => $this->booking->event_type,
             'total_amount' => $this->booking->total_price,

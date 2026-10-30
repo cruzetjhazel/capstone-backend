@@ -7,7 +7,7 @@ use Illuminate\Validation\Rule;
 
 class SubmitPaymentRequest extends FormRequest
 {
-    /** GCash Ref No. length. Change here (and GCASH_REF_DIGITS in BookingPay.tsx) if GCash changes it. */
+    /** GCash Ref No. length. Change here (and GCASH_REF_DIGITS in BookingPay.tsx and StudioEarnings.tsx) if GCash changes it. */
     public const GCASH_REFERENCE_DIGITS = 13;
     public function authorize(): bool
     {
@@ -18,7 +18,7 @@ class SubmitPaymentRequest extends FormRequest
     {
         if ($this->has('reference_number')) {
             $this->merge([
-                'reference_number' => preg_replace('/[\s-]+/', '', (string) $this->input('reference_number')),
+                'reference_number' => preg_replace('/\s+/', '', (string) $this->input('reference_number')),
             ]);
         }
     }

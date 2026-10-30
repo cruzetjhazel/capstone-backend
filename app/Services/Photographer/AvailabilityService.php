@@ -96,7 +96,7 @@ class AvailabilityService
         $bookingsByDate = Booking::query()
             ->where('photographer_id', $photographer->id)
             ->whereIn('status', self::BLOCKING_BOOKING_STATUSES)
-            ->whereIn('payment_status', self::BLOCKING_PAYMENT_STATUSES)
+            ->where(fn ($p) => $p->whereIn('payment_status', self::BLOCKING_PAYMENT_STATUSES)->orWhere('is_manual', true))
             ->whereBetween('event_date', [$start, $end])
             ->get()
             ->groupBy(fn ($b) => $b->event_date->format('Y-m-d'));
@@ -169,7 +169,7 @@ class AvailabilityService
         $bookings = Booking::query()
             ->where('photographer_id', $photographer->id)
             ->whereIn('status', self::BLOCKING_BOOKING_STATUSES)
-            ->whereIn('payment_status', self::BLOCKING_PAYMENT_STATUSES)
+            ->where(fn ($p) => $p->whereIn('payment_status', self::BLOCKING_PAYMENT_STATUSES)->orWhere('is_manual', true))
             ->where('event_date', $date)
             ->when($excludeBookingId, fn ($q) => $q->where('id', '!=', $excludeBookingId))
             ->get();
@@ -229,7 +229,7 @@ class AvailabilityService
             ->whereHas('booking', fn ($q) => $q
                 ->where('photographer_id', $photographer->id)
                 ->whereIn('status', self::BLOCKING_BOOKING_STATUSES)
-                ->whereIn('payment_status', self::BLOCKING_PAYMENT_STATUSES)
+                ->where(fn ($p) => $p->whereIn('payment_status', self::BLOCKING_PAYMENT_STATUSES)->orWhere('is_manual', true))
             )
             ->with('booking')
             ->get()

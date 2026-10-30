@@ -27,7 +27,7 @@ class Booking extends Model
     ];
 
     protected $fillable = [
-        'client_id', 'photographer_id', 'package_id',
+        'client_id', 'walk_in_client_id', 'is_manual', 'manual_amount_paid', 'photographer_id', 'package_id',
         'is_custom_package', 'package_snapshot', 'custom_package_snapshot', 'add_ons_snapshot',
         'event_type', 'custom_event_type', 'event_date', 'start_time', 'end_time', 'duration_minutes',
         'location_type', 'province_id', 'city_municipality_id', 'barangay_id',
@@ -55,6 +55,8 @@ class Booking extends Model
     {
         return [
             'is_custom_package' => 'boolean',
+            'is_manual' => 'boolean',
+            'manual_amount_paid' => 'decimal:2',
             'package_snapshot' => 'array',
             'custom_package_snapshot' => 'array',
             'add_ons_snapshot' => 'array',
@@ -100,6 +102,12 @@ class Booking extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(User::class, 'client_id');
+    }
+
+/** Set instead of client when the photographer recorded this booking manually for a walk-in client. */
+    public function walkInClient(): BelongsTo
+    {
+        return $this->belongsTo(WalkInClient::class, 'walk_in_client_id');
     }
 
     public function photographer(): BelongsTo
@@ -280,6 +288,12 @@ class Booking extends Model
 
     public function totalPaid(): float
     {
+        // A manual booking has no payment records: the photographer entered what was collected.
+        return $this->is_manual ? (float) $this->manual_amount_paid : $this->totalPaidOnline();
+    }
+
+    private function totalPaidOnline(): float
+    {
         return (float) $this->payments()
             ->where(function ($q) {
                 $q->whereNull('matching_status')
@@ -302,6 +316,12 @@ class Booking extends Model
      * remaining balance hasn't been recorded yet (§8.9).
      */
     public function isEligibleForOnsitePayment(): bool
+    {
+        // Manual bookings have no client account to collect through the platform.
+        return ! $this->is_manual && $this->isEligibleForOnsitePaymentOnPlatform();
+    }
+
+    private function isEligibleForOnsitePaymentOnPlatform(): bool
     {
         return $this->status === BookingStatus::Confirmed
             && $this->payment_status !== BookingPaymentStatus::FullyPaid;

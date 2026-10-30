@@ -58,7 +58,7 @@ class CancelBookingByPhotographerAction
 
         $fresh = $booking->fresh();
 
-    $fresh->client->notify(new BookingCancelledNotification($fresh));
+        $fresh->client?->notify(new BookingCancelledNotification($fresh));
 
        app(OfferReleasedSlotAction::class)->passOnOffer($fresh);
    \App\Models\BookingBudgetRequest::closeOpenFor($fresh, \App\Models\BookingBudgetRequest::WITHDRAWN);

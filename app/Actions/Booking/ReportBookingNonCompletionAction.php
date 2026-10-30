@@ -20,6 +20,12 @@ class ReportBookingNonCompletionAction
 
     public function execute(Booking $booking, User $reporter, BookingNonCompletionReason $reason, ?string $notes): Booking
     {
+        if ($booking->is_manual) {
+            throw ValidationException::withMessages([
+                'status' => ['Manual bookings cannot be reported as a no-show. Cancel the booking instead.'],
+            ]);
+        }
+
         if ($booking->status !== BookingStatus::Confirmed) {
             throw ValidationException::withMessages([
                 'status' => ['Only a confirmed booking can be reported as non-completed.'],

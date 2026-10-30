@@ -235,7 +235,7 @@ class BookingController extends Controller
         return [
             'id' => 'BK-'.str_pad((string) $b->id, 4, '0', STR_PAD_LEFT),
             'raw_id' => $b->id,
-            'client' => $b->client?->name ?? 'Unknown client',
+            'client' => $b->client?->name ?? $b->walkInClient?->name ?? 'Unknown client',
             'clientEmail' => $b->client?->email,
             'clientPhone' => $b->client?->phone_number,
             'photographer' => $b->photographer?->name ?? 'Unknown professional',

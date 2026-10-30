@@ -16,7 +16,7 @@ class PhotographerPaymentReferenceFactory extends Factory
     {
         return [
             'photographer_id' => User::factory()->photographer(),
-            'reference_number' => strtoupper(fake()->bothify('GC####??####')),
+            'reference_number' => fake()->numerify('#############'),
             'amount_received' => 5000,
             'payment_date' => now()->format('Y-m-d'),
             'payment_type' => PaymentType::Online,

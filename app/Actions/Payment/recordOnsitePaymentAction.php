@@ -21,6 +21,10 @@ class RecordOnsitePaymentAction
 
     public function execute(Booking $booking, array $data): Payment
     {
+        if ($booking->is_manual) {
+            return $this->recordManual($booking, $data);
+        }
+
         if (! $booking->isEligibleForOnsitePayment()) {
             throw ValidationException::withMessages([
                 'booking' => ['This booking has no pending onsite balance.'],
@@ -78,5 +82,57 @@ class RecordOnsitePaymentAction
         );
 
         return $freshPayment;
+    }
+    private function recordManual(Booking $booking, array $data): Payment
+    {
+        if ($booking->status !== \App\Enums\BookingStatus::Confirmed
+            || $booking->payment_status === BookingPaymentStatus::FullyPaid) {
+            throw ValidationException::withMessages([
+                'booking' => ['This booking has no pending balance.'],
+            ]);
+        }
+
+        $remaining = $booking->remainingBalance();
+        $amount = round((float) $data['amount'], 2);
+
+        if ($amount <= 0 || $amount > $remaining) {
+            throw ValidationException::withMessages([
+                'amount' => ['The amount must be greater than zero and no more than the remaining balance of '.number_format($remaining, 2).'.'],
+            ]);
+        }
+
+        $payment = Payment::create([
+            'booking_id' => $booking->id,
+            'client_id' => null,
+            'photographer_id' => $booking->photographer_id,
+            'type' => PaymentType::Onsite,
+            'method' => 'cash',
+            'plan' => null,
+            'amount' => $amount,
+            'reference_number' => null,
+            'payment_date' => $data['payment_date'],
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        $newPaid = round((float) $booking->manual_amount_paid + $amount, 2);
+
+        $booking->update([
+            'manual_amount_paid' => $newPaid,
+            'payment_status' => $newPaid >= round((float) $booking->total_price, 2)
+                ? BookingPaymentStatus::FullyPaid
+                : BookingPaymentStatus::PartiallyPaid,
+        ]);
+
+        $fresh = $booking->fresh();
+
+        $this->activityLogger->execute(
+            causer: $fresh->photographer,
+            subject: $fresh,
+            action: 'payment.onsite_recorded',
+            description: "Recorded payment for manual booking #{$fresh->id}",
+            metadata: ['amount' => $amount, 'remaining_balance' => $fresh->remainingBalance()],
+        );
+
+        return $payment->fresh();
     }
 }
