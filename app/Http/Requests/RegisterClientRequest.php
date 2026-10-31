@@ -36,7 +36,7 @@ class RegisterClientRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email:rfc,dns', 'max:255', Rule::unique('users', 'email')],
             'phone_number' => ['required', 'string', 'max:20'],
-            'password' => ['required', 'confirmed', Password::min(8)->numbers()],
+            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'terms_accepted' => ['required', 'accepted'],
             'address' => ['nullable', 'string', 'max:200'],
             'city' => ['nullable', 'string', 'max:100'],

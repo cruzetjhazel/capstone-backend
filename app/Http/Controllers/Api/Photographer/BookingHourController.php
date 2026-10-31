@@ -59,14 +59,14 @@ class BookingHourController extends Controller
     {
         $this->authorize('viewAny', BookingHour::class);
 
-        return $this->success(['slot_interval_minutes' => $request->user()->slot_interval_minutes ?? 60]);
+        return $this->success(['slot_interval_minutes' => $request->user()->slot_interval_minutes ?? 30]);
     }
 
     public function updateInterval(Request $request, UpdateSlotIntervalAction $action)
     {
         $this->authorize('update', BookingHour::class);
 
-        $request->validate(['slot_interval_minutes' => ['required', 'integer', 'in:5,10,15,20,30,45,60']]);
+        $request->validate(['slot_interval_minutes' => ['required', 'integer', 'in:30,45,60']]);
 
         $user = $action->execute($request->user(), $request->integer('slot_interval_minutes'));
 

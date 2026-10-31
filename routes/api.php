@@ -47,6 +47,7 @@ use App\Http\Controllers\Api\Photographer\AnalyticsController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\ServiceSearchLogController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\Client\ContactChangeController;
 
 
 Route::prefix('auth')->group(function () {
@@ -58,6 +59,11 @@ Route::prefix('auth')->group(function () {
     Route::get('email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
         ->middleware('throttle:6,1')
         ->name('verification.verify');
+
+    // Link sent to the NEW address of an email change. Name is required by VerifyNewEmail.
+    Route::get('email/change/verify/{id}/{hash}', [ContactChangeController::class, 'verifyEmailChange'])
+        ->middleware('throttle:10,1')
+        ->name('email-change.verify');
 
     Route::middleware('throttle:auth')->group(function () {
         Route::post('register-client', [AuthController::class, 'register']);
@@ -108,6 +114,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('profile', [ClientProfileController::class, 'update']);
         Route::post('change-password', [ClientProfileController::class, 'changePassword']);
         Route::post('deactivate', [ClientProfileController::class, 'deactivate']);
+
+        Route::post('change-contact-number', [ContactChangeController::class, 'changeContactNumber'])->middleware('throttle:5,1');
+        Route::post('change-email', [ContactChangeController::class, 'requestEmailChange'])->middleware('throttle:5,1');
+        Route::post('change-email/resend', [ContactChangeController::class, 'resendEmailChange'])->middleware('throttle:3,1');
+        Route::post('change-email/cancel', [ContactChangeController::class, 'cancelEmailChange']);
 
         Route::get('favorites', [FavoritePhotographerController::class, 'index']);
         Route::post('favorites/{user}', [FavoritePhotographerController::class, 'store']);

@@ -63,7 +63,7 @@ class AvailabilityService
         BookingPaymentStatus::FullyPaid,
     ];
 
-    private const DEFAULT_SLOT_STEP_MINUTES = 60;
+    private const DEFAULT_SLOT_STEP_MINUTES = 30;
 
     /**
      * Per-day availability for a month.

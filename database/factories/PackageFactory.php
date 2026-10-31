@@ -17,7 +17,7 @@ class PackageFactory extends Factory
         return [
             'user_id' => User::factory()->photographer(),
             'name' => 'Basic Wedding Package',
-            'description' => 'Wedding photography coverage',
+            'description' => 'Professional photography session with edited photos.',
             'included_items' => ['8 hours coverage', '300 edited photos', 'Online gallery'],
             'price' => 10000,
             'duration_minutes' => 480,

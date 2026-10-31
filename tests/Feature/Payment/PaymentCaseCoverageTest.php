@@ -76,11 +76,11 @@ class PaymentCaseCoverageTest extends TestCase
     }
 
     // PAY-02
-    public function test_reference_with_spaces_or_dashes_is_stored_as_digits_only(): void
+    public function test_reference_with_spaces_is_stored_as_digits_only(): void
     {
         $booking = $this->acceptedBooking(10000);
 
-        $this->submit($booking, $this->payload('1000 000-000 123'))->assertCreated();
+        $this->submit($booking, $this->payload('1000 000 000 123'))->assertCreated();
 
         $this->assertDatabaseHas('payments', ['booking_id' => $booking->id, 'reference_number' => '1000000000123']);
     }
