@@ -4,11 +4,16 @@ namespace App\Actions\Photographer;
 
 use App\Models\PhotographerProfile;
 use App\Models\User;
+use App\Services\Photographer\CoverPhotoProcessor;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 
 class CreatePhotographerProfileAction
 {
+    public function __construct(protected CoverPhotoProcessor $coverProcessor)
+    {
+    }
+
     public function execute(User $user, array $data, array $files = []): PhotographerProfile
     {
         if ($user->photographerProfile()->exists()) {
@@ -33,7 +38,7 @@ class CreatePhotographerProfileAction
         }
 
         if (($files['cover_photo'] ?? null) instanceof UploadedFile) {
-            $fields['cover_photo_path'] = $this->store($profile, $files['cover_photo'], 'cover');
+            $fields['cover_photo_path'] = $this->coverProcessor->store($files['cover_photo'], "photographers/{$profile->user_id}/cover");
         }
 
         if ($fields) {

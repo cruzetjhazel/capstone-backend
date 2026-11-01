@@ -18,6 +18,7 @@ class UserManagementResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'phone_number' => $this->phone_number,
             'account_type' => $this->account_type?->value ?? $this->account_type,
             'photographer_type' => $application?->photographer_type?->value ?? $application?->photographer_type,
             'account_status' => $this->account_status,

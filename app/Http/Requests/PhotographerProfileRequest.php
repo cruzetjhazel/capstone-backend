@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\Photographer\CoverPhotoProcessor;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PhotographerProfileRequest extends FormRequest
@@ -11,7 +12,7 @@ class PhotographerProfileRequest extends FormRequest
         return true;
     }
 
-        public function rules(): array
+    public function rules(): array
     {
         return [
             'bio' => ['sometimes', 'nullable', 'string', 'max:2000'],
@@ -21,7 +22,8 @@ class PhotographerProfileRequest extends FormRequest
             'instagram' => ['sometimes', 'nullable', 'url', 'max:255'],
             'website' => ['sometimes', 'nullable', 'url', 'max:255'],
             'profile_photo' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-            'cover_photo' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            // 3 MB max. No dimension rules: the server resizes and crops to a 4:1 banner.
+            'cover_photo' => ['sometimes', 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:' . CoverPhotoProcessor::MAX_KILOBYTES],
         ];
     }
 }
