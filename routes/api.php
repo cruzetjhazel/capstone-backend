@@ -84,6 +84,7 @@ Route::prefix('auth')->group(function () {
 
 Route::post('auth/register-photographer', [AuthController::class, 'registerPhotographer'])->middleware('throttle:auth');
 Route::post('auth/check-email', [AuthController::class, 'checkEmail'])->middleware('throttle:30,1');
+Route::post('auth/check-phone', [AuthController::class, 'checkPhone'])->middleware('throttle:30,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('photographer')->group(function () {

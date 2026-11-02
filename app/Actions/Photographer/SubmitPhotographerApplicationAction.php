@@ -3,7 +3,6 @@
 namespace App\Actions\Photographer;
 
 use App\Enums\PhotographerApplicationStatus;
-use App\Enums\PhotographerType;
 use App\Models\PhotographerApplication;
 use Illuminate\Validation\ValidationException;
 
@@ -50,9 +49,8 @@ class SubmitPhotographerApplicationAction
             }
         }
 
-        if ($application->photographer_type === PhotographerType::Studio && empty($application->business_permit_path)) {
-            $missing[] = 'A business permit or DTI registration document is required for Studio applications.';
-        }
+        // business_permit_path is intentionally NOT required, not even for Studio
+        // applications: the DTI / business permit upload is optional.
 
         return $missing;
     }

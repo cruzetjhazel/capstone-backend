@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\UniquePhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -35,7 +36,7 @@ class RegisterClientRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email:rfc,dns', 'max:255', Rule::unique('users', 'email')],
-            'phone_number' => ['required', 'string', 'max:20'],
+            'phone_number' => ['required', 'string', 'max:20', new UniquePhoneNumber],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'terms_accepted' => ['required', 'accepted'],
             'address' => ['nullable', 'string', 'max:200'],

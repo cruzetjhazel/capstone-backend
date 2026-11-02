@@ -10,6 +10,7 @@ use App\Http\Requests\RegisterClientRequest;
 use App\Http\Resources\UserResource;
 use App\Models\PlatformSetting;
 use App\Models\User;
+use App\Rules\UniquePhoneNumber;
 use App\Traits\ApiResponses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -230,4 +231,24 @@ class AuthController extends Controller
         'reason' => $exists ? 'taken' : null,
     ]);
 }
+
+    /**
+     * Live phone-number availability check for the registration form.
+     * Same contract as checkEmail: {available: bool, reason: 'taken'|'invalid_format'|null}.
+     */
+    public function checkPhone(Request $request)
+    {
+        $phone = trim((string) $request->input('phone_number'));
+
+        if ($phone === '' || strlen($phone) > 20) {
+            return response()->json(['available' => false, 'reason' => 'invalid_format']);
+        }
+
+        $exists = UniquePhoneNumber::exists($phone);
+
+        return response()->json([
+            'available' => ! $exists,
+            'reason' => $exists ? 'taken' : null,
+        ]);
+    }
 }
