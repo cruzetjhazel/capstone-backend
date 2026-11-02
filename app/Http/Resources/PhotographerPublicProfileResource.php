@@ -46,6 +46,7 @@ class PhotographerPublicProfileResource extends JsonResource
             'location' => $application?->location,
             'coverage_area' => $application?->coverage_area,
             'years_active' => $application?->years_active,
+            'team_size' => $application?->team_size,
             'shooting_types' => $application?->shooting_types ?? [],
             'services' => collect($application?->services ?? [])
                 ->merge(
