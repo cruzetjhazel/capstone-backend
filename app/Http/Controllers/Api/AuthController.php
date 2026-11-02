@@ -224,11 +224,29 @@ class AuthController extends Controller
         return response()->json(['available' => false, 'reason' => 'invalid_format']);
     }
 
-    $exists = User::whereRaw('LOWER(email) = ?', [$email])->exists();
+    $user = User::with('photographerApplication')->whereRaw('LOWER(email) = ?', [$email])->first();
+
+    if (! $user) {
+        return response()->json(['available' => true, 'reason' => null]);
+    }
+
+    // Only coarse codes are returned (no name, phone or application details) so the
+    // form can pick the right message without leaking personal data.
+    $accountType = $user->account_type instanceof \BackedEnum ? $user->account_type->value : (string) $user->account_type;
+    $applicationStatus = null;
+
+    if ($user->isPhotographer()) {
+        $status = $user->photographerApplication?->status;
+        // A photographer with no application row yet is treated as an empty draft,
+        // the same way the /photographer/status page does.
+        $applicationStatus = $status instanceof \BackedEnum ? $status->value : ($status ?: 'draft');
+    }
 
     return response()->json([
-        'available' => !$exists,
-        'reason' => $exists ? 'taken' : null,
+        'available' => false,
+        'reason' => 'taken',
+        'account_type' => $accountType,
+        'application_status' => $applicationStatus,
     ]);
 }
 
