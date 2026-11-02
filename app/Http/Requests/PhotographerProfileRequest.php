@@ -12,11 +12,18 @@ class PhotographerProfileRequest extends FormRequest
         return true;
     }
 
+    public function messages(): array
+    {
+        return [
+            'style.max' => 'You can select up to 6 photography style tags.',
+        ];
+    }
+
     public function rules(): array
     {
         return [
             'bio' => ['sometimes', 'nullable', 'string', 'max:2000'],
-            'style' => ['sometimes', 'nullable', 'array'],
+            'style' => ['sometimes', 'nullable', 'array', 'max:6'], // photography style tags: 6 max
             'style.*' => ['string', 'max:255'],
             'facebook' => ['sometimes', 'nullable', 'url', 'max:255'],
             'instagram' => ['sometimes', 'nullable', 'url', 'max:255'],
