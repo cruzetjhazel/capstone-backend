@@ -45,8 +45,8 @@ class UpdateCustomPackageConfigAction
             'unit_rate' => $isUnit ? $keep('unit_rate') : null,
             'coverage_hours' => $isUnit ? $keep('coverage_hours') : null,
             'max_people' => $model === 'per_person' ? $keep('max_people') : null,
-            'allows_multiple_sessions' => (bool) $keep('allows_multiple_sessions', false),
-            'max_sessions' => (bool) $keep('allows_multiple_sessions', false) ? $keep('max_sessions') : null,
+            'allows_multiple_sessions' => $model === 'per_day' && (bool) $keep('allows_multiple_sessions', false),
+            'max_sessions' => ($model === 'per_day' && (bool) $keep('allows_multiple_sessions', false)) ? $keep('max_sessions') : null,
             'base_fee_mode' => null,
         ];
 
