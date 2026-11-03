@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Models\CustomPackageConfig;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,46 +34,5 @@ class CustomPackageConfigRequest extends FormRequest
             'max_sessions' => ['sometimes', 'nullable', 'integer', 'min:2', 'max:15'],
             'base_fee_mode' => ['sometimes', 'nullable', Rule::in(['once', 'per_schedule'])],
         ];
-    }
-
-    public function withValidator($validator): void
-    {
-        $validator->after(function ($validator) {
-            // Query the stored config directly. Reading $this->user()->customPackageConfig
-            // would cache a null relation on the user object when no config exists
-            // yet, and the controller's later read of that relation would go stale.
-            $stored = $this->user()
-                ? CustomPackageConfig::where('user_id', $this->user()->id)->first()
-                : null;
-
-            // The value the config will have after this save: the request's if
-            // it sent that key, otherwise what is already stored.
-            $value = fn (string $key) => $this->has($key) ? $this->input($key) : $stored?->{$key};
-
-            // Same rule as UpdateCustomPackageConfigAction: an explicit model
-            // wins; older clients that send base_fee / hourly_rate without one
-            // are read as hourly (rate present) or fixed; otherwise use stored.
-            $model = $this->input('pricing_model');
-            if (! $model) {
-                if ($this->has('hourly_rate') || $this->has('base_fee')) {
-                    $model = $this->input('hourly_rate') !== null ? 'hourly' : 'fixed';
-                } else {
-                    $model = $stored?->pricing_model ?: ($stored?->hourly_rate !== null ? 'hourly' : 'fixed');
-                }
-            }
-
-            if ($this->boolean('enabled')) {
-                [$field, $message] = match ($model) {
-                    'hourly' => ['hourly_rate', 'Rate per hour is required while hourly pricing is on.'],
-                    'per_day' => ['unit_rate', 'Rate per day is required while per-day pricing is on.'],
-                    'per_person' => ['unit_rate', 'Rate per person is required while per-person pricing is on.'],
-                    default => ['base_fee', 'Base session fee is required while fixed pricing is on.'],
-                };
-                $v = $value($field);
-                if (! is_numeric($v) || (float) $v <= 0) {
-                    $validator->errors()->add($field, $message);
-                }
-            }
-        });
     }
 }

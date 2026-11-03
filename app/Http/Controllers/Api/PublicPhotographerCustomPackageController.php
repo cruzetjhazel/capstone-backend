@@ -31,7 +31,13 @@ class PublicPhotographerCustomPackageController extends Controller
 
         // No config row, or the photographer has it turned off — tell the
         // client there's nothing to build rather than exposing archived/unset data.
-        if (! $config || ! $config->enabled) {
+        $hasPrice = $config && match ($config->pricing_model) {
+            'hourly' => (float) $config->hourly_rate > 0,
+            'per_day', 'per_person' => (float) $config->unit_rate > 0,
+            default => (float) $config->base_fee > 0,
+        };
+
+        if (! $config || ! $config->enabled || ! $hasPrice) {
             return $this->success([
                 'config' => ['enabled' => false, 'base_fee' => null],
                 'components' => [],
