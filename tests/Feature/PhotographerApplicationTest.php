@@ -94,7 +94,7 @@ class PhotographerApplicationTest extends TestCase
         $this->assertNotNull($application->fresh()->submitted_at);
     }
 
-    public function test_studio_application_requires_business_permit_to_submit(): void
+        public function test_studio_application_can_submit_without_business_permit(): void
     {
         $user = User::factory()->photographer()->create();
         PhotographerApplication::factory()->for($user)->studio()->complete()->create([
@@ -103,9 +103,9 @@ class PhotographerApplicationTest extends TestCase
 
         Sanctum::actingAs($user);
 
-        $response = $this->postJson('/api/photographer/application/submit');
-
-        $response->assertStatus(422);
+        $this->postJson('/api/photographer/application/submit')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'pending_review');
     }
 
     public function test_cannot_edit_application_once_pending_review(): void

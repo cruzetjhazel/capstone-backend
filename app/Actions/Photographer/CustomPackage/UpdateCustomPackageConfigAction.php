@@ -4,6 +4,7 @@ namespace App\Actions\Photographer\CustomPackage;
 
 use App\Models\CustomPackageConfig;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 class UpdateCustomPackageConfigAction
 {
@@ -49,6 +50,22 @@ class UpdateCustomPackageConfigAction
             'max_sessions' => ($model === 'per_day' && (bool) $keep('allows_multiple_sessions', false)) ? $keep('max_sessions') : null,
             'base_fee_mode' => null,
         ];
+
+        // An enabled custom package must have a price, otherwise clients could book it for free.
+        // `$values` already merges stored values, so a toggle-only save keeps working.
+        if ($values['enabled']) {
+            $rateField = match ($model) {
+                'hourly' => 'hourly_rate',
+                'per_day', 'per_person' => 'unit_rate',
+                default => 'base_fee',
+            };
+
+            if ($values[$rateField] === null) {
+                throw ValidationException::withMessages([
+                    $rateField => ['Set a price before enabling custom packages.'],
+                ]);
+            }
+        }
 
         return CustomPackageConfig::updateOrCreate(['user_id' => $user->id], $values);
     }
