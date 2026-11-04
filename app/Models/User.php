@@ -38,6 +38,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'account_type' => AccountType::class,
             'account_status' => AccountStatus::class,
             'terms_accepted_at' => 'datetime',
+            'booking_hours_initialized' => 'boolean',
         ];
     }
 

@@ -79,7 +79,7 @@ class AvailabilityService
             ->get()
             ->groupBy('day_of_week');
 
-        $hasAnyBookingHours = $bookingHoursByWeekday->isNotEmpty();
+        $hasAnyBookingHours = $photographer->booking_hours_initialized || $bookingHoursByWeekday->isNotEmpty();
 
         $windowsByDate = AvailabilityWindow::query()
             ->where('user_id', $photographer->id)
@@ -155,7 +155,8 @@ class AvailabilityService
             ->where('day_of_week', $carbonDate->dayOfWeek)
             ->get();
 
-        $hasAnyBookingHours = BookingHour::query()->where('user_id', $photographer->id)->exists();
+        $hasAnyBookingHours = $photographer->booking_hours_initialized
+            || BookingHour::query()->where('user_id', $photographer->id)->exists();
 
         $windowsForDate = AvailabilityWindow::query()
             ->where('user_id', $photographer->id)
@@ -263,7 +264,7 @@ class AvailabilityService
         } elseif (! $hasAnyBookingHours) {
             // Photographer hasn't configured usual hours at all yet —
             // preserve the old "fully open" default.
-            $periods = [[Carbon::parse("{$dateStr} 00:00"), Carbon::parse("{$dateStr} 00:00")->addDay()]];
+            $periods = [[Carbon::parse("{$dateStr} 07:00"), Carbon::parse("{$dateStr} 22:00")]];
         } else {
             // Usual hours ARE configured, just not for this weekday
             // (e.g. "Sunday: unavailable") — closed unless a one-off

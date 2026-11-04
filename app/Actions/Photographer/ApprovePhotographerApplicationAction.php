@@ -4,6 +4,7 @@ namespace App\Actions\Photographer;
 
 use App\Actions\ActivityLog\LogActivityAction;
 use App\Enums\PhotographerApplicationStatus;
+use App\Models\BookingHour;
 use App\Models\PhotographerApplication;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
@@ -32,6 +33,8 @@ class ApprovePhotographerApplicationAction
 
         $fresh = $application->fresh();
 
+        $this->seedDefaultBookingHours($fresh->user_id);
+
         $this->activityLogger->execute(
             causer: $reviewer,
             subject: $fresh,
@@ -40,5 +43,26 @@ class ApprovePhotographerApplicationAction
         );
 
         return $fresh;
+    }
+
+    /**
+     * New photographers start open 7:00 AM - 10:00 PM every day. They can edit
+     * or remove any period later. Skipped if they already set their own hours
+     * (e.g. an application that is approved again after a revision).
+     */
+    private function seedDefaultBookingHours(int $userId): void
+    {
+        if (BookingHour::where('user_id', $userId)->exists()) {
+            return;
+        }
+
+        foreach (range(0, 6) as $day) {
+            BookingHour::create([
+                'user_id' => $userId,
+                'day_of_week' => $day,
+                'start_time' => '07:00',
+                'end_time' => '22:00',
+            ]);
+        }
     }
 }

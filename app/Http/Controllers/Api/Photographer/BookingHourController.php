@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Photographer;
 
 use App\Actions\Photographer\Availability\CreateBookingHourAction;
 use App\Actions\Photographer\Availability\DeleteBookingHourAction;
+use App\Actions\Photographer\Availability\EnsureDefaultBookingHoursAction;
 use App\Actions\Photographer\Availability\UpdateBookingHourAction;
 use App\Actions\Photographer\Availability\UpdateSlotIntervalAction;
 use App\Http\Controllers\Controller;
@@ -17,9 +18,11 @@ class BookingHourController extends Controller
 {
     use ApiResponses;
 
-    public function index(Request $request)
+    public function index(Request $request, EnsureDefaultBookingHoursAction $ensureDefaults)
     {
         $this->authorize('viewAny', BookingHour::class);
+
+        $ensureDefaults->execute($request->user());
 
         return $this->success(
             BookingHourResource::collection(
@@ -28,9 +31,11 @@ class BookingHourController extends Controller
         );
     }
 
-    public function store(BookingHourRequest $request, CreateBookingHourAction $action)
+    public function store(BookingHourRequest $request, CreateBookingHourAction $action, EnsureDefaultBookingHoursAction $ensureDefaults)
     {
         $this->authorize('create', BookingHour::class);
+
+        $ensureDefaults->execute($request->user());
 
         $hour = $action->execute($request->user(), $request->validated());
 
