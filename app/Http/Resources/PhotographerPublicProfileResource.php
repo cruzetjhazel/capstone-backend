@@ -42,6 +42,8 @@ class PhotographerPublicProfileResource extends JsonResource
             'joined_at' => $application?->reviewed_at ?? $this->created_at,
             'is_bookable' => app(\App\Services\Photographer\BookabilityService::class)->isBookable($this->resource),
             'photographer_type' => $application?->photographer_type?->value,
+            'is_freelancer' => (bool) $application?->is_freelancer,
+            'is_studio_owner' => (bool) $application?->is_studio_owner,
             'business_name' => $application?->business_name,
             'location' => $application?->location,
             'coverage_area' => $application?->coverage_area,
@@ -57,8 +59,8 @@ class PhotographerPublicProfileResource extends JsonResource
                 ->unique()
                 ->values()
                 ->all(),
-            'starting_price' => $application?->price_min,
-            'max_price' => $application?->price_max,
+            'starting_price' => $this->packagePrices()->isNotEmpty() ? $this->packagePrices()->min() : $application?->price_min,
+            'max_price' => $this->packagePrices()->isNotEmpty() ? $this->packagePrices()->max() : $application?->price_max,
             'style' => $profile?->style,
             'bio' => $profile?->bio,
             'profile_photo_url' => $profile?->profile_photo_path ? Storage::disk('public')->url($profile->profile_photo_path) : null,
@@ -83,5 +85,13 @@ class PhotographerPublicProfileResource extends JsonResource
                 $this->addOns->where('status', \App\Enums\AddOnStatus::Active)
             ),
         ];
+    }
+
+    private function packagePrices()
+    {
+        return $this->packages
+            ->where('status', \App\Enums\PackageStatus::Published)
+            ->pluck('price')
+            ->map(fn ($price) => (float) $price);
     }
 }

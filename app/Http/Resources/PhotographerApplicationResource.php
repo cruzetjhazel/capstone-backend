@@ -14,6 +14,8 @@ class PhotographerApplicationResource extends JsonResource
         return [
             'id' => $this->id,
             'photographer_type' => $this->photographer_type->value,
+            'is_freelancer' => (bool) $this->is_freelancer,
+            'is_studio_owner' => (bool) $this->is_studio_owner,
             'status' => $this->status->value,
             'business_name' => $this->business_name,
             'location' => $this->location,

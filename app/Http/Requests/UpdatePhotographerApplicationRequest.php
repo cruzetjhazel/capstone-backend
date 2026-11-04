@@ -15,6 +15,8 @@ class UpdatePhotographerApplicationRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'is_freelancer' => ['sometimes', 'boolean'],
+            'is_studio_owner' => ['sometimes', 'boolean'],
             'business_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'location' => ['sometimes', 'nullable', 'string', 'max:255'],
             'years_active' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:80'],

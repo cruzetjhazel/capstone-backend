@@ -6,6 +6,7 @@ use App\Rules\UniquePhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Validator;
 
 class RegisterPhotographerRequest extends FormRequest
 {
@@ -19,6 +20,14 @@ class RegisterPhotographerRequest extends FormRequest
         if ($this->has('email')) {
             $this->merge([
                 'email' => strtolower(trim((string) $this->input('email'))),
+            ]);
+        }
+
+        // Older clients send one photographer_type instead of the two classification flags.
+        if (! $this->has('is_freelancer') && ! $this->has('is_studio_owner') && $this->has('photographer_type')) {
+            $this->merge([
+                'is_freelancer' => $this->input('photographer_type') === 'freelancer',
+                'is_studio_owner' => $this->input('photographer_type') === 'studio',
             ]);
         }
     }
@@ -38,8 +47,22 @@ class RegisterPhotographerRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'phone_number' => ['required', 'string', 'max:20', new UniquePhoneNumber],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
-            'photographer_type' => ['required', Rule::in(['freelancer', 'studio'])],
+            'is_freelancer' => ['required', 'boolean'],
+            'is_studio_owner' => ['required', 'boolean'],
             'terms_accepted' => ['required', 'accepted'],
         ];
+    }
+
+    public function after(): array
+    {
+        return [function (Validator $validator) {
+            if ($validator->errors()->hasAny(['is_freelancer', 'is_studio_owner'])) {
+                return;
+            }
+
+            if (! $this->boolean('is_freelancer') && ! $this->boolean('is_studio_owner')) {
+                $validator->errors()->add('is_freelancer', 'Select at least one: Freelance Photographer or Studio Owner.');
+            }
+        }];
     }
 }

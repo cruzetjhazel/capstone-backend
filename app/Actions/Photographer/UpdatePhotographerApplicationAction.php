@@ -35,10 +35,25 @@ class UpdatePhotographerApplicationAction
         }
 
         $fields = collect($data)->only([
+            'is_freelancer', 'is_studio_owner',
             'business_name', 'location', 'years_active', 'team_size',
             'services', 'other_services', 'coverage_area', 'shooting_types',
             'price_min', 'price_max',
         ])->toArray();
+
+        if (array_key_exists('is_freelancer', $fields) || array_key_exists('is_studio_owner', $fields)) {
+            $isFreelancer = (bool) ($fields['is_freelancer'] ?? $application->is_freelancer);
+            $isStudioOwner = (bool) ($fields['is_studio_owner'] ?? $application->is_studio_owner);
+
+            if (! $isFreelancer && ! $isStudioOwner) {
+                throw ValidationException::withMessages([
+                    'is_freelancer' => ['Select at least one: Freelance Photographer or Studio Owner.'],
+                ]);
+            }
+
+            // Keep the legacy single column in sync, same rule as RegisterPhotographerAction.
+            $fields['photographer_type'] = $isStudioOwner ? PhotographerType::Studio : PhotographerType::Freelancer;
+        }
 
         if (! empty($fields['shooting_types']) && in_array('hybrid', $fields['shooting_types'], true)) {
             $fields['shooting_types'] = array_values(array_unique(array_merge(

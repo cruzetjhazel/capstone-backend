@@ -7,6 +7,7 @@ use App\Enums\AccountType;
 use App\Enums\PhotographerApplicationStatus;
 use App\Models\PhotographerApplication;
 use App\Models\User;
+use App\Enums\PhotographerType;
 use Illuminate\Support\Facades\DB;
 
 class RegisterPhotographerAction
@@ -26,7 +27,9 @@ class RegisterPhotographerAction
 
             PhotographerApplication::create([
                 'user_id' => $user->id,
-                'photographer_type' => $data['photographer_type'],
+                'photographer_type' => ($data['is_studio_owner'] ?? false) ? PhotographerType::Studio : PhotographerType::Freelancer,
+                'is_freelancer' => (bool) ($data['is_freelancer'] ?? false),
+                'is_studio_owner' => (bool) ($data['is_studio_owner'] ?? false),
                 'status' => PhotographerApplicationStatus::Draft,
             ]);
 

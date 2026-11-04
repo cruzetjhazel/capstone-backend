@@ -17,6 +17,8 @@ class PhotographerApplication extends Model
     protected $fillable = [
         'user_id',
         'photographer_type',
+        'is_freelancer',
+        'is_studio_owner',
         'status',
         'business_name',
         'location',
@@ -53,6 +55,8 @@ class PhotographerApplication extends Model
             'reviewed_at' => 'datetime',
             'submitted_at' => 'datetime',
             'can_reapply' => 'boolean',
+            'is_freelancer' => 'boolean',
+            'is_studio_owner' => 'boolean',
         ];
     }
 

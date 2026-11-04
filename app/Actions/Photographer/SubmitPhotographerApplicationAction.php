@@ -39,7 +39,6 @@ class SubmitPhotographerApplicationAction
         $required = [
             'business_name', 'location', 'years_active',
             'services', 'coverage_area', 'shooting_types',
-            'price_min', 'price_max',
             'government_id_path', 'selfie_with_id_path',
         ];
 

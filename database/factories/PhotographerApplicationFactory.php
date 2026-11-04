@@ -17,6 +17,8 @@ class PhotographerApplicationFactory extends Factory
         return [
             'user_id' => User::factory()->photographer(),
             'photographer_type' => PhotographerType::Freelancer,
+            'is_freelancer' => true,
+            'is_studio_owner' => false,
             'status' => PhotographerApplicationStatus::Draft,
         ];
     }
@@ -75,6 +77,8 @@ class PhotographerApplicationFactory extends Factory
     {
         return $this->state(fn () => [
             'photographer_type' => PhotographerType::Studio,
+            'is_freelancer' => false,
+            'is_studio_owner' => true,
             'team_size' => fake()->numberBetween(2, 10),
         ]);
     }
