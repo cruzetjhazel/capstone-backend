@@ -52,6 +52,14 @@ class ExpireStaleBookingHoldsAction
             return 0;
         }
 
+        // Safety net when the scheduler is not running: a booking that has reached its
+        // start time still moves to Event Day as soon as bookings are read.
+        try {
+            app(\App\Actions\Booking\RunServiceProgressTransitionsAction::class)->execute();
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return $this->execute();
     }
 

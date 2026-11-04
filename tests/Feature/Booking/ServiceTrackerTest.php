@@ -32,7 +32,7 @@ class ServiceTrackerTest extends TestCase
         ])->assertStatus(401);
     }
 
-    public function test_photographer_can_advance_the_service_tracker(): void
+        public function test_photographer_cannot_manually_move_upcoming_to_event_day(): void
     {
         $photographer = $this->approvedPhotographer();
         $booking = Booking::factory()->confirmed()->create([
@@ -41,12 +41,11 @@ class ServiceTrackerTest extends TestCase
         ]);
         Sanctum::actingAs($photographer);
 
-        $response = $this->patchJson("/api/photographer/bookings/{$booking->id}/service-tracker", [
+        $this->patchJson("/api/photographer/bookings/{$booking->id}/service-tracker", [
             'service_status' => 'event_day',
-        ]);
+        ])->assertStatus(422);
 
-        $response->assertOk()->assertJsonPath('data.service_status', 'event_day');
-        $this->assertNotNull($booking->fresh()->service_status_updated_at);
+        $this->assertSame('upcoming', $booking->fresh()->service_status->value);
     }
 
         public function test_service_tracker_walks_through_every_manual_stage_in_order(): void
@@ -59,9 +58,9 @@ class ServiceTrackerTest extends TestCase
         ]);
         Sanctum::actingAs($photographer);
 
-        $this->patchJson("/api/photographer/bookings/{$booking->id}/service-tracker", [
-            'service_status' => 'event_day',
-        ])->assertOk()->assertJsonPath('data.service_status', 'event_day');
+        // Upcoming -> Event Day is automatic now: the scheduled job does it once the start time has passed.
+        app(\App\Actions\Booking\RunServiceProgressTransitionsAction::class)->execute();
+        $this->assertSame('event_day', $booking->fresh()->service_status->value);
 
         // Event Day -> Editing is only possible through "Confirm Shoot Completed".
         $this->postJson("/api/photographer/bookings/{$booking->id}/confirm-shoot")

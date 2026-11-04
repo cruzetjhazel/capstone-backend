@@ -21,7 +21,7 @@ class ServiceTrackerNotificationTest extends TestCase
         return $user;
     }
 
-    public function test_updating_the_service_tracker_notifies_the_client(): void
+    public function test_automatic_event_day_transition_notifies_the_client(): void
     {
         $photographer = $this->approvedPhotographer();
         $booking = Booking::factory()->confirmed()->create([
@@ -30,9 +30,7 @@ class ServiceTrackerNotificationTest extends TestCase
         ]);
         Sanctum::actingAs($photographer);
 
-        $this->patchJson("/api/photographer/bookings/{$booking->id}/service-tracker", [
-            'service_status' => 'event_day',
-        ])->assertOk();
+        app(\App\Actions\Booking\RunServiceProgressTransitionsAction::class)->execute();
 
         $this->assertDatabaseHas('notifications', [
             'notifiable_id' => $booking->client_id,

@@ -16,13 +16,12 @@ class UpdateServiceTrackerStatusAction
 
     /**
      * The manual forward-transitions this endpoint allows.
-     * Upcoming -> Event Day is now photographer-driven too (previously
-     * handled by RunServiceProgressTransitionsAction on a schedule — see
-     * routes/console.php, which no longer calls it). Completed is still
-     * separate, via MarkServiceCompletedAction.
+     * Upcoming -> Event Day is NOT manual: RunServiceProgressTransitionsAction
+     * does it automatically at the scheduled start time (Asia/Manila).
+     * Completed is separate, via MarkServiceCompletedAction.
      */
     private const ALLOWED_TRANSITIONS = [
-        'upcoming' => ServiceTrackerStatus::EventDay,
+        // upcoming -> event_day is NOT allowed here on purpose: it is automatic.
         // event_day -> editing is NOT allowed here on purpose: it only happens through "Confirm Shoot Completed" ($viaShootConfirmation).
         'editing' => ServiceTrackerStatus::Delivered,
     ];
@@ -47,6 +46,12 @@ class UpdateServiceTrackerStatusAction
             && ! $viaShootConfirmation) {
             throw ValidationException::withMessages([
                 'service_status' => ['Use "Confirm Shoot Completed" to move this booking from Event Day to Editing.'],
+            ]);
+        }
+
+        if ($booking->service_status === ServiceTrackerStatus::Upcoming && $status === ServiceTrackerStatus::EventDay) {
+            throw ValidationException::withMessages([
+                'service_status' => ['Event Day starts automatically at the scheduled service start time (Philippine time). It cannot be set manually.'],
             ]);
         }
 
