@@ -370,7 +370,9 @@ class AvailabilityService
 
         $slots = [];
         // Too-short notice can't be paid for (see BookingDeadlineService), so don't offer it.
-        $earliestStart = Carbon::now()->addHours($minNoticeHours ?? (int) config('platform.min_notice_hours', 24));
+        $noticeHours = $minNoticeHours ?? (int) config('platform.min_notice_hours', 5);
+        $now = Carbon::now()->startOfMinute();
+        $earliestStart = $now->copy()->addHours($noticeHours);
 
         foreach ($periods as [$periodStart, $periodEnd]) {
             $cursor = $periodStart->copy();
@@ -392,7 +394,7 @@ class AvailabilityService
 
                 $formatted = $cursor->format('H:i');
                 // Never offer a start time that has already passed (matters for today's date).
-                if (! $overlaps && $cursor->gt($earliestStart) && ! in_array($formatted, $slots, true)) {
+                if (! $overlaps && ($noticeHours > 0 ? $cursor->gte($earliestStart) : $cursor->gt($now)) && ! in_array($formatted, $slots, true)) {
                     $slots[] = $formatted;
                 }
 
