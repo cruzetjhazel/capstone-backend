@@ -27,7 +27,6 @@ class RegisterClientRequest extends FormRequest
     {
         return [
             'email.email' => 'Enter a valid email address.',
-            'email.unique' => 'This email is already registered.',
         ];
     }
 
@@ -35,8 +34,8 @@ class RegisterClientRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email:rfc,dns', 'max:255', Rule::unique('users', 'email')],
-            'phone_number' => ['required', 'string', 'max:20', new UniquePhoneNumber],
+            'email' => ['required', 'email:rfc,dns', 'max:255'],
+            'phone_number' => ['required', 'string', 'max:20'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'terms_accepted' => ['required', 'accepted'],
             'address' => ['nullable', 'string', 'max:200'],

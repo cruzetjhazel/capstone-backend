@@ -7,6 +7,7 @@ use App\Enums\PhotographerType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Enums\PhotographerApplicationStatus;
 
 
@@ -68,6 +69,11 @@ class PhotographerApplication extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function itemReviews(): HasMany
+    {
+        return $this->hasMany(ApplicationItemReview::class, 'photographer_application_id');
     }
 
     public function isEditable(): bool

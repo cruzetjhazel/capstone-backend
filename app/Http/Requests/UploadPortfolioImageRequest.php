@@ -14,7 +14,11 @@ class UploadPortfolioImageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'image' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+            'image' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
+    }
+        public function messages(): array
+    {
+        return ['image.max' => 'File size must not exceed 2 MB.'];
     }
 }

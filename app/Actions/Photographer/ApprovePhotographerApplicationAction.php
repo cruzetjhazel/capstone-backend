@@ -11,8 +11,10 @@ use Illuminate\Validation\ValidationException;
 
 class ApprovePhotographerApplicationAction
 {
-    public function __construct(protected LogActivityAction $activityLogger)
-    {
+    public function __construct(
+        protected LogActivityAction $activityLogger,
+        protected BuildApplicationChecklistAction $checklist,
+    ) {
     }
 
     public function execute(PhotographerApplication $application, User $reviewer): PhotographerApplication
@@ -21,6 +23,12 @@ class ApprovePhotographerApplicationAction
             throw ValidationException::withMessages([
                 'status' => ['Only applications with status Pending Review can be approved.'],
             ]);
+        }
+
+        $blockers = $this->checklist->execute($application)['summary']['blockers'];
+
+        if ($blockers !== []) {
+            throw ValidationException::withMessages(['application' => $blockers]);
         }
 
         $application->fill([

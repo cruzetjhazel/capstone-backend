@@ -16,6 +16,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use App\Notifications\RegistrationAttemptNotification;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Str;
 use App\Actions\Photographer\RegisterPhotographerAction;
 use App\Http\Requests\RegisterPhotographerRequest;
 
@@ -25,14 +28,9 @@ class AuthController extends Controller
 
     public function register(RegisterClientRequest $request, RegisterClientAction $action)
     {
-        $user = $action->execute($request->validated());
-        $this->sendVerificationEmail($user);
-        $token = $user->createToken('api')->plainTextToken;
-
-        return $this->success(
-            ['user' => new UserResource($user), 'token' => $token],
-            'Account created successfully.',
-            201
+        return $this->registerWithGenericResponse(
+            $request->validated(),
+            fn (array $data) => $action->execute($data)
         );
     }
 
@@ -56,6 +54,10 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request->validated('email'))->first();
+
+        if (! $user) {
+            Hash::make(Str::random(16)); // keeps response time the same for unknown emails
+        }
 
         if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
             RateLimiter::hit($throttleKey, $lockoutSeconds);
@@ -166,10 +168,23 @@ class AuthController extends Controller
             return redirect("{$frontend}/email-verified?status=invalid");
         }
 
-        if (! $user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
-            event(new \Illuminate\Auth\Events\Verified($user));
+        // Already verified (for example an older link): nothing to do.
+        if ($user->hasVerifiedEmail()) {
+            return redirect("{$frontend}/email-verified?status=success");
         }
+
+        // The link carries a one-time value that is replaced whenever a new email is
+        // sent, so only the newest link works, and it works once.
+        $claimed = User::whereKey($user->id)
+            ->whereNull('email_verified_at')
+            ->where('email_verification_nonce', hash('sha256', (string) $request->query('n', '')))
+            ->update(['email_verified_at' => now(), 'email_verification_nonce' => null]);
+
+        if (! $claimed) {
+            return redirect("{$frontend}/email-verified?status=invalid");
+        }
+
+        event(new \Illuminate\Auth\Events\Verified($user->fresh()));
 
         return redirect("{$frontend}/email-verified?status=success");
     }
@@ -182,7 +197,37 @@ class AuthController extends Controller
             return $this->success(null, 'Your email is already verified.');
         }
 
-        $user->sendEmailVerificationNotification();
+        // 1 email per minute and 5 per hour for each account.
+        $limits = ["verify-resend-min:{$user->id}" => 1, "verify-resend-hour:{$user->id}" => 5];
+        $retryAfter = 0;
+        foreach ($limits as $key => $max) {
+            if (RateLimiter::tooManyAttempts($key, $max)) {
+                $retryAfter = max($retryAfter, RateLimiter::availableIn($key));
+            }
+        }
+
+        if ($retryAfter > 0) {
+            $wait = $retryAfter > 120 ? ceil($retryAfter / 60).' minutes' : "{$retryAfter} seconds";
+            $message = "Please wait {$wait} before requesting another email.";
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'errors' => ['email' => [$message]],
+                'retry_after' => $retryAfter,
+            ], 429)->header('Retry-After', $retryAfter);
+        }
+
+        RateLimiter::hit("verify-resend-min:{$user->id}", 60);
+        RateLimiter::hit("verify-resend-hour:{$user->id}", 3600);
+
+        try {
+            $user->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $this->error("We couldn't send the email. Please try again in a moment.", 503);
+        }
 
         return $this->success(null, 'Verification email sent.');
     }
@@ -195,78 +240,72 @@ class AuthController extends Controller
             report($e); // signup must not fail just because the mail failed
         }
     }
-    public function registerPhotographer(RegisterPhotographerRequest $request, RegisterPhotographerAction $action)
-    {
-        $user = $action->execute($request->validated());
-        $this->sendVerificationEmail($user);
-        $token = $user->createToken('api')->plainTextToken;
 
-        return $this->success(
-            [
-                'user' => new UserResource($user),
-                'application' => new \App\Http\Resources\PhotographerApplicationResource($user->photographerApplication),
-                'token' => $token,
-            ],
-            'Photographer account created. Complete and submit your application to begin the review process.',
-            201
-        );
-    }
-    public function checkEmail(Request $request)
-{
-    $email = strtolower(trim((string) $request->input('email')));
-
-    $validator = \Illuminate\Support\Facades\Validator::make(
-        ['email' => $email],
-        ['email' => ['required', 'email:rfc,dns']]
-    );
-
-    if ($validator->fails()) {
-        return response()->json(['available' => false, 'reason' => 'invalid_format']);
-    }
-
-    $user = User::with('photographerApplication')->whereRaw('LOWER(email) = ?', [$email])->first();
-
-    if (! $user) {
-        return response()->json(['available' => true, 'reason' => null]);
-    }
-
-    // Only coarse codes are returned (no name, phone or application details) so the
-    // form can pick the right message without leaking personal data.
-    $accountType = $user->account_type instanceof \BackedEnum ? $user->account_type->value : (string) $user->account_type;
-    $applicationStatus = null;
-
-    if ($user->isPhotographer()) {
-        $status = $user->photographerApplication?->status;
-        // A photographer with no application row yet is treated as an empty draft,
-        // the same way the /photographer/status page does.
-        $applicationStatus = $status instanceof \BackedEnum ? $status->value : ($status ?: 'draft');
-    }
-
-    return response()->json([
-        'available' => false,
-        'reason' => 'taken',
-        'account_type' => $accountType,
-        'application_status' => $applicationStatus,
-    ]);
-}
+    private const GENERIC_REGISTRATION_MESSAGE =
+        'Thank you for registering! If your registration can proceed, check your email for the next steps.';
 
     /**
-     * Live phone-number availability check for the registration form.
-     * Same contract as checkEmail: {available: bool, reason: 'taken'|'invalid_format'|null}.
+     * Same 202 response whether the account was created, the email already exists, or
+     * the phone number is taken, so the form can't be used to find out who is
+     * registered. No token is issued: the user must verify and sign in.
      */
-    public function checkPhone(Request $request)
+    private function registerWithGenericResponse(array $data, callable $create)
     {
-        $phone = trim((string) $request->input('phone_number'));
+        $email = strtolower(trim((string) ($data['email'] ?? '')));
+        $phone = $data['phone_number'] ?? null;
 
-        if ($phone === '' || strlen($phone) > 20) {
-            return response()->json(['available' => false, 'reason' => 'invalid_format']);
+        $emailTaken = User::whereRaw('LOWER(email) = ?', [$email])->exists();
+        $phoneTaken = ! $emailTaken && filled($phone) && UniquePhoneNumber::exists((string) $phone);
+
+        if ($emailTaken || $phoneTaken) {
+            Hash::make(Str::random(16)); // same cost as creating an account
+
+            if ($emailTaken) {
+                $this->scheduleDuplicateNotice($email);
+            }
+            // A taken phone number gets no email: it would reveal that the number is registered.
+        } else {
+            try {
+                $user = $create($data);
+                // Sent after the response so timing doesn't differ between the cases.
+                app()->terminating(fn () => $this->sendVerificationEmail($user));
+            } catch (UniqueConstraintViolationException $e) {
+                // Lost a race with another request for the same email or phone: treat as a duplicate.
+            }
         }
 
-        $exists = UniquePhoneNumber::exists($phone);
+        return $this->success(null, self::GENERIC_REGISTRATION_MESSAGE, 202);
+    }
 
-        return response()->json([
-            'available' => ! $exists,
-            'reason' => $exists ? 'taken' : null,
-        ]);
+    private function scheduleDuplicateNotice(string $email): void
+    {
+        $key = sha1($email);
+
+        // At most 1 notice per hour and 3 per day for any one address.
+        if (RateLimiter::tooManyAttempts("dup-reg-hour:{$key}", 1) || RateLimiter::tooManyAttempts("dup-reg-day:{$key}", 3)) {
+            return;
+        }
+        RateLimiter::hit("dup-reg-hour:{$key}", 3600);
+        RateLimiter::hit("dup-reg-day:{$key}", 86400);
+
+        $owner = User::whereRaw('LOWER(email) = ?', [$email])->first();
+        if (! $owner) {
+            return;
+        }
+
+        app()->terminating(function () use ($owner) {
+            try {
+                $owner->notify(new RegistrationAttemptNotification());
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+    }
+    public function registerPhotographer(RegisterPhotographerRequest $request, RegisterPhotographerAction $action)
+    {
+        return $this->registerWithGenericResponse(
+            $request->validated(),
+            fn (array $data) => $action->execute($data)
+        );
     }
 }

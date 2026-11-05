@@ -16,7 +16,7 @@ class SubmitPhotographerApplicationAction
             ]);
         }
 
-        $missing = $this->missingFields($application);
+        $missing = app(BuildApplicationChecklistAction::class)->execute($application)['problems'];
 
         if (! empty($missing)) {
             throw ValidationException::withMessages(['application' => $missing]);

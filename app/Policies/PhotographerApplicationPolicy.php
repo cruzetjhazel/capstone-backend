@@ -46,4 +46,9 @@ class PhotographerApplicationPolicy
     {
         return $user->isAdministrator();
     }
+
+    public function review(User $user, PhotographerApplication $application): bool
+    {
+        return $user->isAdministrator();
+    }
 }

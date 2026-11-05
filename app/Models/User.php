@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Notifications\VerifyEmailWithNonce;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -28,6 +30,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'email_verification_nonce',
     ];
 
     protected function casts(): array
@@ -40,6 +43,19 @@ class User extends Authenticatable implements MustVerifyEmail
             'terms_accepted_at' => 'datetime',
             'booking_hours_initialized' => 'boolean',
         ];
+    }
+
+    /**
+     * Every call issues a fresh one-time value and stores only its hash, so any
+     * verification link sent earlier stops working.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $nonce = Str::random(40);
+
+        $this->forceFill(['email_verification_nonce' => hash('sha256', $nonce)])->save();
+
+        $this->notify(new VerifyEmailWithNonce($nonce));
     }
 
     public function isAdministrator(): bool

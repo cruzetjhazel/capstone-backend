@@ -82,5 +82,15 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(20)->by($request->ip()),
             ];
         });
+
+        // Registration: per-minute limit plus an hourly cap per IP.
+        RateLimiter::for('register', function (Request $request) {
+            $emailKey = strtolower(trim((string) $request->input('email', '')));
+
+            return [
+                Limit::perMinute(5)->by($request->ip().'|'.$emailKey),
+                Limit::perHour(20)->by($request->ip()),
+            ];
+        });
     }
 }

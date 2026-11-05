@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Actions\Photographer\BuildApplicationChecklistAction;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -46,6 +47,10 @@ class PhotographerApplicationResource extends JsonResource
                 ],
                 'reviewed_by' => $this->reviewer?->id,
                 'reviewed_at' => $this->reviewed_at,
+            ]),
+            // Only built for the admin detail view (index doesn't load itemReviews).
+            $this->mergeWhen($isAdmin && $this->relationLoaded('itemReviews'), fn () => [
+                'checklist' => app(BuildApplicationChecklistAction::class)->execute($this->resource),
             ]),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

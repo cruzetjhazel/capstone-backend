@@ -3,9 +3,14 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Actions\Photographer\ApprovePhotographerApplicationAction;
+use App\Actions\Photographer\BuildApplicationChecklistAction;
+use App\Actions\Photographer\ReviewApplicationItemAction;
+use App\Http\Requests\ReviewApplicationItemRequest;
+use App\Models\PhotographerPortfolioImage;
 use App\Actions\Photographer\RejectPhotographerApplicationAction;
 use App\Actions\Photographer\RequestPhotographerApplicationRevisionAction;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureEmailVerifiedForAction;
 use App\Http\Requests\RejectPhotographerApplicationRequest;
 use App\Http\Requests\RequestRevisionRequest;
 use App\Http\Resources\PhotographerApplicationResource;
@@ -45,7 +50,7 @@ class PhotographerApplicationController extends Controller
     {
         $this->authorize('view', $photographerApplication);
 
-        return $this->success(new PhotographerApplicationResource($photographerApplication->load('user', 'reviewer')));
+        return $this->success(new PhotographerApplicationResource($photographerApplication->load('user', 'reviewer', 'itemReviews.reviewer')));
     }
 
     public function approve(PhotographerApplication $photographerApplication, ApprovePhotographerApplicationAction $action, Request $request)
@@ -96,5 +101,46 @@ class PhotographerApplicationController extends Controller
         abort_if(! $path || ! Storage::disk('local')->exists($path), 404, 'Document not found.');
 
         return Storage::disk('local')->download($path);
+    }
+
+    public function downloadAdditionalDocument(PhotographerApplication $photographerApplication, string $ref)
+    {
+        $this->authorize('view', $photographerApplication);
+
+        $path = collect($photographerApplication->additional_document_paths ?? [])
+            ->first(fn ($p) => BuildApplicationChecklistAction::additionalRef($p) === $ref);
+
+        abort_if(! $path || ! Storage::disk('local')->exists($path), 404, 'Document not found.');
+
+        return Storage::disk('local')->response($path);
+    }
+
+    public function portfolioImage(PhotographerApplication $photographerApplication, PhotographerPortfolioImage $portfolioImage)
+    {
+        $this->authorize('view', $photographerApplication);
+
+        abort_if($portfolioImage->user_id !== $photographerApplication->user_id, 404, 'Image not found.');
+        abort_if(! Storage::disk('public')->exists($portfolioImage->path), 404, 'Image not found.');
+
+        return Storage::disk('public')->response($portfolioImage->path);
+    }
+
+    public function reviewItem(ReviewApplicationItemRequest $request, PhotographerApplication $photographerApplication, ReviewApplicationItemAction $action)
+    {
+        $this->authorize('review', $photographerApplication);
+
+        $action->execute(
+            $photographerApplication,
+            $request->user(),
+            $request->validated('item_type'),
+            $request->validated('item_ref'),
+            $request->validated('status'),
+            $request->validated('feedback'),
+        );
+
+        return $this->success(
+            new PhotographerApplicationResource($photographerApplication->load('user', 'reviewer', 'itemReviews.reviewer')),
+            'Review saved.'
+        );
     }
 }

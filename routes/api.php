@@ -65,8 +65,9 @@ Route::prefix('auth')->group(function () {
         ->middleware('throttle:10,1')
         ->name('email-change.verify');
 
+    Route::post('register-client', [AuthController::class, 'register'])->middleware('throttle:register');
+
     Route::middleware('throttle:auth')->group(function () {
-        Route::post('register-client', [AuthController::class, 'register']);
         Route::post('reactivate', [AuthController::class, 'reactivate']);
         Route::post('appeal', [AppealController::class, 'store']);
     });
@@ -82,9 +83,7 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-Route::post('auth/register-photographer', [AuthController::class, 'registerPhotographer'])->middleware('throttle:auth');
-Route::post('auth/check-email', [AuthController::class, 'checkEmail'])->middleware('throttle:30,1');
-Route::post('auth/check-phone', [AuthController::class, 'checkPhone'])->middleware('throttle:30,1');
+Route::post('auth/register-photographer', [AuthController::class, 'registerPhotographer'])->middleware('throttle:register');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('photographer')->group(function () {
@@ -99,6 +98,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [AdminPhotographerApplicationController::class, 'index']);
         Route::get('{photographerApplication}', [AdminPhotographerApplicationController::class, 'show']);
         Route::get('{photographerApplication}/documents/{type}', [AdminPhotographerApplicationController::class, 'downloadDocument']);
+        Route::get('{photographerApplication}/additional-documents/{ref}', [AdminPhotographerApplicationController::class, 'downloadAdditionalDocument']);
+        Route::get('{photographerApplication}/portfolio/{portfolioImage}', [AdminPhotographerApplicationController::class, 'portfolioImage']);
+        Route::post('{photographerApplication}/reviews', [AdminPhotographerApplicationController::class, 'reviewItem']);
         Route::post('{photographerApplication}/approve', [AdminPhotographerApplicationController::class, 'approve']);
         Route::post('{photographerApplication}/reject', [AdminPhotographerApplicationController::class, 'reject']);
         Route::post('{photographerApplication}/request-revision', [AdminPhotographerApplicationController::class, 'requestRevision']);
@@ -154,7 +156,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('deactivate', [ProfileController::class, 'deactivate']);
 
         Route::get('portfolio', [PortfolioController::class, 'index']);
-        Route::post('portfolio', [PortfolioController::class, 'store']);
+        Route::post('portfolio', [PortfolioController::class, 'store'])->middleware('verified.action');
         Route::patch('portfolio/reorder', [PortfolioController::class, 'reorder']);
         Route::post('portfolio/{portfolioImage}/archive', [PortfolioController::class, 'archive']);
         Route::post('portfolio/{portfolioImage}/restore', [PortfolioController::class, 'restore']);
@@ -225,7 +227,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('client')->group(function () {
         Route::get('bookings', [ClientBookingController::class, 'index']);
-        Route::post('bookings', [ClientBookingController::class, 'store']);
+        Route::post('bookings', [ClientBookingController::class, 'store'])->middleware('verified.action');
         Route::get('bookings/{booking}', [ClientBookingController::class, 'show']);
         Route::post('bookings/{booking}/request-cancellation', [ClientBookingController::class, 'requestCancellation']);
             Route::post('bookings/{booking}/accept-offer', [ClientBookingController::class, 'acceptOffer']);
@@ -240,7 +242,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('bookings/{booking}/request-modification', [ClientBookingController::class, 'requestModification']);
         Route::post('bookings/{booking}/extensions', [ClientBookingController::class, 'requestExtension']);
         Route::get('bookings/{booking}/payment-info', [ClientPaymentController::class, 'paymentInfo']);
-        Route::post('bookings/{booking}/payments', [ClientPaymentController::class, 'store']);
+        Route::post('bookings/{booking}/payments', [ClientPaymentController::class, 'store'])->middleware('verified.action');
         Route::get('payments', [ClientPaymentController::class, 'index']);
     });
 
@@ -321,7 +323,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('client')->group(function () {
         Route::get('reviews', [ClientReviewController::class, 'index']);
-        Route::post('reviews', [ClientReviewController::class, 'store']);
+        Route::post('reviews', [ClientReviewController::class, 'store'])->middleware('verified.action');
     });
 
     Route::prefix('photographer')->group(function () {
@@ -335,13 +337,13 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('client')->group(function () {
         Route::get('reports', [ReportController::class, 'index']);
-        Route::post('reports', [ReportController::class, 'store']);
+        Route::post('reports', [ReportController::class, 'store'])->middleware('verified.action');
         Route::get('reports/{report}', [ReportController::class, 'show']);
     });
 
     Route::prefix('photographer')->group(function () {
         Route::get('reports', [ReportController::class, 'index']);
-        Route::post('reports', [ReportController::class, 'store']);
+        Route::post('reports', [ReportController::class, 'store'])->middleware('verified.action');
         Route::get('reports/{report}', [ReportController::class, 'show']);
     });
 });

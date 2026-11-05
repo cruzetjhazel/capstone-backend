@@ -37,7 +37,8 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    // The SPA authenticates with Bearer tokens only, so no session guard is checked.
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -50,7 +51,7 @@ return [
     |
     */
 
-    'expiration' => null, // tokens never expire; the user stays logged in until they log out
+    'expiration' => 43200, // 30 days maximum token age (the 24h inactivity rule in AppServiceProvider still applies)
 
     /*
     |--------------------------------------------------------------------------

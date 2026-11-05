@@ -31,11 +31,21 @@ class UpdatePhotographerApplicationRequest extends FormRequest
             'shooting_types.*' => [Rule::in(['indoor', 'outdoor', 'event_coverage', 'drone_aerial', 'hybrid'])],
             'price_min' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'price_max' => ['sometimes', 'nullable', 'numeric', 'gte:price_min'],
-            'government_id' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-            'selfie_with_id' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
-            'business_permit' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'government_id' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
+            'selfie_with_id' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'business_permit' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
             'additional_documents' => ['sometimes', 'nullable', 'array', 'max:5'],
-            'additional_documents.*' => ['file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'additional_documents.*' => ['file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
+        ];
+    }
+        public function messages(): array
+    {
+        return [
+            'government_id.max' => 'Government ID: file size must not exceed 2 MB.',
+            'selfie_with_id.max' => 'Selfie: file size must not exceed 2 MB.',
+            'business_permit.max' => 'Business permit: file size must not exceed 2 MB.',
+            'additional_documents.*.max' => 'Additional documents: each file size must not exceed 2 MB.',
+            'additional_documents.max' => 'You can upload at most 5 additional documents at a time.',
         ];
     }
 }

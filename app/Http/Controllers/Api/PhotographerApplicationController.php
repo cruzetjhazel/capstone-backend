@@ -57,6 +57,12 @@ class PhotographerApplicationController extends Controller
         $application = $this->applicationFor($request);
         $this->authorize('update', $application);
 
+        // Application intake (details and documents) needs a verified email.
+        // Approved photographers editing business details are not affected.
+        if (! $request->user()->hasVerifiedEmail() && $application->isEditable()) {
+            return EnsureEmailVerifiedForAction::deny();
+        }
+
         $application = $action->execute($application, $request->validated(), [
             'government_id' => $request->file('government_id'),
             'selfie_with_id' => $request->file('selfie_with_id'),

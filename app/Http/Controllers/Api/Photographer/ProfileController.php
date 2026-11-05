@@ -8,6 +8,7 @@ use App\Actions\Photographer\ChangePasswordAction;
 use App\Actions\Photographer\CreatePhotographerProfileAction;
 use App\Actions\Photographer\UpdatePhotographerProfileAction;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureEmailVerifiedForAction;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\DeactivateAccountRequest;
 use App\Http\Requests\PhotographerProfileRequest;
@@ -25,6 +26,10 @@ class ProfileController extends Controller
     public function store(PhotographerProfileRequest $request, CreatePhotographerProfileAction $action)
     {
         $this->authorize('create', PhotographerProfile::class);
+
+        if (! $request->user()->hasVerifiedEmail() && ($request->hasFile('profile_photo') || $request->hasFile('cover_photo'))) {
+            return EnsureEmailVerifiedForAction::deny();
+        }
 
             $profile = $action->execute($request->user(), $request->validated(), [
             'profile_photo' => $request->file('profile_photo'),
@@ -46,6 +51,10 @@ class ProfileController extends Controller
     {
         $profile = $this->profileFor($request);
         $this->authorize('update', $profile);
+
+        if (! $request->user()->hasVerifiedEmail() && ($request->hasFile('profile_photo') || $request->hasFile('cover_photo'))) {
+            return EnsureEmailVerifiedForAction::deny();
+        }
 
         $profile = $action->execute($profile, $request->validated(), [
             'profile_photo' => $request->file('profile_photo'),

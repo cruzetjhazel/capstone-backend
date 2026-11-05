@@ -28,6 +28,9 @@ class ProfileController extends Controller
 
     public function update(UpdateClientProfileRequest $request, UpdateClientProfileAction $action)
     {
+        if (! $request->user()->hasVerifiedEmail() && $request->hasFile('profile_photo')) {
+            return EnsureEmailVerifiedForAction::deny();
+        }
         $profile = $action->execute($request->user(), $request->validated(), $request->file('profile_photo'));
         $profile->setRelation('user', $request->user()->fresh());
 

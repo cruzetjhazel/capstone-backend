@@ -2,6 +2,7 @@
 
 namespace App\Actions\Photographer;
 
+use App\Enums\PhotographerType;
 use App\Models\PhotographerApplication;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
@@ -75,11 +76,20 @@ class UpdatePhotographerApplicationAction
         }
 
         if (! empty($files['additional_documents'])) {
-            $paths = $application->additional_document_paths ?? [];
-            foreach ($files['additional_documents'] as $file) {
-                if ($file instanceof UploadedFile) {
-                    $paths[] = $this->store($application, $file);
-                }
+            $newFiles = array_values(array_filter($files['additional_documents'], fn ($f) => $f instanceof UploadedFile));
+
+            if (count($newFiles) < BuildApplicationChecklistAction::ADDITIONAL_MIN) {
+                throw ValidationException::withMessages([
+                    'additional_documents' => ['Upload at least '.BuildApplicationChecklistAction::ADDITIONAL_MIN.' additional documents. New uploads replace the ones already on file.'],
+                ]);
+            }
+
+            // New uploads replace the whole set. Old files stay on disk (and keep
+            // their review records) but stop being part of the application, so
+            // every new file starts as pending review.
+            $paths = [];
+            foreach ($newFiles as $file) {
+                $paths[] = $this->store($application, $file);
             }
             $fields['additional_document_paths'] = $paths;
         }
