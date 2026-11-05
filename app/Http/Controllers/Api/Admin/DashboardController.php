@@ -25,7 +25,14 @@ class DashboardController extends Controller
     {
         abort_unless($request->user()->isAdministrator(), 403);
 
-        $totalUsers = User::count();
+        // Same visibility rule as the Admin Users list: photographers with a
+        // draft (or no) application aren't counted yet.
+        $totalUsers = User::query()
+            ->where(function ($q) {
+                $q->where('account_type', '!=', AccountType::Photographer)
+                  ->orWhereHas('photographerApplication', fn ($q) => $q->where('status', '!=', PhotographerApplicationStatus::Draft));
+            })
+            ->count();
 
         $activeClients = User::where('account_type', AccountType::Client)
             ->where('account_status', 'active')
