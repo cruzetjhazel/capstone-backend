@@ -89,8 +89,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('photographer')->group(function () {
         Route::get('application', [PhotographerApplicationController::class, 'show']);
         Route::patch('application', [PhotographerApplicationController::class, 'update']);
-        Route::post('application/submit', [PhotographerApplicationController::class, 'submit'])->middleware('verified');
-        Route::post('application/reapply', [PhotographerApplicationController::class, 'reapply'])->middleware('verified');
+        Route::post('application/submit', [PhotographerApplicationController::class, 'submit']);
+        Route::post('application/reapply', [PhotographerApplicationController::class, 'reapply']);
         Route::get('application/documents/{type}', [PhotographerApplicationController::class, 'downloadDocument']);
         });
 
@@ -156,7 +156,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('deactivate', [ProfileController::class, 'deactivate']);
 
         Route::get('portfolio', [PortfolioController::class, 'index']);
-        Route::post('portfolio', [PortfolioController::class, 'store'])->middleware('verified.action');
+        Route::post('portfolio', [PortfolioController::class, 'store']);
         Route::patch('portfolio/reorder', [PortfolioController::class, 'reorder']);
         Route::post('portfolio/{portfolioImage}/archive', [PortfolioController::class, 'archive']);
         Route::post('portfolio/{portfolioImage}/restore', [PortfolioController::class, 'restore']);
@@ -248,39 +248,39 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('photographer')->group(function () {
         Route::get('bookings', [PhotographerBookingController::class, 'index']);
-        Route::post('bookings/manual', [PhotographerBookingController::class, 'storeManual']);
+        Route::post('bookings/manual', [PhotographerBookingController::class, 'storeManual'])->middleware('verified.action');
         Route::get('bookings/{booking}', [PhotographerBookingController::class, 'show']);
-        Route::post('bookings/{booking}/accept', [PhotographerBookingController::class, 'accept']);
-           Route::post('bookings/{booking}/reject', [PhotographerBookingController::class, 'reject']);
-   Route::post('bookings/{booking}/budget-request/respond', [\App\Http\Controllers\Api\Photographer\BudgetRequestController::class, 'respond']);
+        Route::post('bookings/{booking}/accept', [PhotographerBookingController::class, 'accept'])->middleware('verified.action');
+           Route::post('bookings/{booking}/reject', [PhotographerBookingController::class, 'reject'])->middleware('verified.action');
+   Route::post('bookings/{booking}/budget-request/respond', [\App\Http\Controllers\Api\Photographer\BudgetRequestController::class, 'respond'])->middleware('verified.action');
         Route::post('bookings/{booking}/report-non-completion', [PhotographerBookingController::class, 'reportNonCompletion']);
         Route::post('bookings/{booking}/dispute-non-completion', [PhotographerBookingController::class, 'disputeNonCompletion']);
-        Route::post('bookings/{booking}/cancellation/approve', [PhotographerBookingController::class, 'approveCancellation']);
-        Route::post('bookings/{booking}/cancellation/reject', [PhotographerBookingController::class, 'rejectCancellation']);
+        Route::post('bookings/{booking}/cancellation/approve', [PhotographerBookingController::class, 'approveCancellation'])->middleware('verified.action');
+        Route::post('bookings/{booking}/cancellation/reject', [PhotographerBookingController::class, 'rejectCancellation'])->middleware('verified.action');
         Route::get('bookings/{booking}/accommodation-candidates', [PhotographerBookingController::class, 'accommodationCandidates']);
-        Route::post('bookings/{booking}/accommodate', [PhotographerBookingController::class, 'accommodate']);
-        Route::post('bookings/{booking}/reschedule/approve', [PhotographerBookingController::class, 'approveReschedule']);
-        Route::post('bookings/{booking}/reschedule/reject', [PhotographerBookingController::class, 'rejectReschedule']);
-        Route::post('bookings/{booking}/modification/approve', [PhotographerBookingController::class, 'approveModification']);
-        Route::post('bookings/{booking}/modification/reject', [PhotographerBookingController::class, 'rejectModification']);
-        Route::post('bookings/{booking}/cancel', [PhotographerBookingController::class, 'cancel']);
-        Route::post('bookings/{booking}/extensions/{extension}/approve', [PhotographerBookingController::class, 'approveExtension']);
-        Route::post('bookings/{booking}/extensions/{extension}/decline', [PhotographerBookingController::class, 'declineExtension']);
-        Route::patch('bookings/{booking}/service-tracker', [ServiceTrackerController::class, 'update']);
-        Route::post('bookings/{booking}/confirm-shoot', [ServiceTrackerController::class, 'confirmShoot']);
-        Route::post('bookings/{booking}/complete', [ServiceTrackerController::class, 'complete']);
+        Route::post('bookings/{booking}/accommodate', [PhotographerBookingController::class, 'accommodate'])->middleware('verified.action');
+        Route::post('bookings/{booking}/reschedule/approve', [PhotographerBookingController::class, 'approveReschedule'])->middleware('verified.action');
+        Route::post('bookings/{booking}/reschedule/reject', [PhotographerBookingController::class, 'rejectReschedule'])->middleware('verified.action');
+        Route::post('bookings/{booking}/modification/approve', [PhotographerBookingController::class, 'approveModification'])->middleware('verified.action');
+        Route::post('bookings/{booking}/modification/reject', [PhotographerBookingController::class, 'rejectModification'])->middleware('verified.action');
+        Route::post('bookings/{booking}/cancel', [PhotographerBookingController::class, 'cancel'])->middleware('verified.action');
+        Route::post('bookings/{booking}/extensions/{extension}/approve', [PhotographerBookingController::class, 'approveExtension'])->middleware('verified.action');
+        Route::post('bookings/{booking}/extensions/{extension}/decline', [PhotographerBookingController::class, 'declineExtension'])->middleware('verified.action');
+        Route::patch('bookings/{booking}/service-tracker', [ServiceTrackerController::class, 'update'])->middleware('verified.action');
+        Route::post('bookings/{booking}/confirm-shoot', [ServiceTrackerController::class, 'confirmShoot'])->middleware('verified.action');
+        Route::post('bookings/{booking}/complete', [ServiceTrackerController::class, 'complete'])->middleware('verified.action');
 
         Route::get('payment-config', [PaymentConfigController::class, 'show']);
         Route::post('payment-config', [PaymentConfigController::class, 'store']);
-        Route::post('bookings/{booking}/payments/onsite', [PhotographerPaymentController::class, 'storeOnsite']);
+        Route::post('bookings/{booking}/payments/onsite', [PhotographerPaymentController::class, 'storeOnsite'])->middleware('verified.action');
         Route::get('payments', [PhotographerPaymentController::class, 'index']);
 
         Route::get('payment-references', [PaymentReferenceController::class, 'index']);
         Route::post('payment-references', [PaymentReferenceController::class, 'store']);
         Route::post('payment-references/{paymentReference}/invalidate', [PaymentReferenceController::class, 'invalidate']);
 
-        Route::post('payments/{payment}/verify', [PhotographerPaymentController::class, 'verify']);
-        Route::post('payments/{payment}/reject', [PhotographerPaymentController::class, 'reject']);
+        Route::post('payments/{payment}/verify', [PhotographerPaymentController::class, 'verify'])->middleware('verified.action');
+        Route::post('payments/{payment}/reject', [PhotographerPaymentController::class, 'reject'])->middleware('verified.action');
 
         Route::get('activity-logs', [ActivityLogController::class, 'mine']);
     });

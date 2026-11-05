@@ -28,7 +28,7 @@ class AuthController extends Controller
 
     public function register(RegisterClientRequest $request, RegisterClientAction $action)
     {
-        return $this->registerWithGenericResponse(
+        return $this->registerAndSignIn(
             $request->validated(),
             fn (array $data) => $action->execute($data)
         );
@@ -301,9 +301,16 @@ class AuthController extends Controller
             }
         });
     }
-    public function registerPhotographer(RegisterPhotographerRequest $request, RegisterPhotographerAction $action)
+        public function registerPhotographer(RegisterPhotographerRequest $request, RegisterPhotographerAction $action)
     {
-        $data = $request->validated();
+        return $this->registerAndSignIn(
+            $request->validated(),
+            fn (array $data) => $action->execute($data)
+        );
+    }
+
+    private function registerAndSignIn(array $data, callable $create)
+    {
         $email = strtolower(trim((string) ($data['email'] ?? '')));
         $phone = $data['phone_number'] ?? null;
 
@@ -315,18 +322,15 @@ class AuthController extends Controller
         }
 
         try {
-            $user = $action->execute($data);
+            $user = $create($data);
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages(['email' => ['This email or phone number is already registered.']]);
         }
 
-        // Sent after the response so signup stays fast and never fails because of mail.
         app()->terminating(fn () => $this->sendVerificationEmail($user));
 
-        $token = $user->createToken('api')->plainTextToken;
-
         return $this->success(
-            ['user' => new UserResource($user), 'token' => $token],
+            ['user' => new UserResource($user), 'token' => $user->createToken('api')->plainTextToken],
             'Account created. Check your email to verify it.',
             201
         );
