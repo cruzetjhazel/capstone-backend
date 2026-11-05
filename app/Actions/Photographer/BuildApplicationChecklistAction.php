@@ -26,9 +26,23 @@ class BuildApplicationChecklistAction
         'travel_outside_bicol' => 'Travel Outside Bicol',
     ];
 
+    // The portfolio is verified as ONE unit (not image by image). Its single review row uses
+    // item_type 'portfolio_image' with this fixed key.
+    public const PORTFOLIO_REF = 'all';
+
     public static function additionalRef(string $path): string
     {
         return substr(sha1($path), 0, 16);
+    }
+
+    /**
+     * Fingerprint of the active portfolio images. It is stored in the review row's file_path,
+     * so if the applicant adds, removes or replaces any image, the old verification no longer
+     * matches and the portfolio goes back to "pending".
+     */
+    public static function portfolioFingerprint(iterable $images): string
+    {
+        return sha1(collect($images)->sortBy('id')->map(fn ($i) => $i->id.':'.$i->path)->implode('|'));
     }
 
     public function execute(PhotographerApplication $application): array
@@ -63,13 +77,33 @@ class BuildApplicationChecklistAction
             ->orderBy('sort_order')
             ->orderBy('created_at')
             ->get();
+
+        // ONE review for the whole portfolio. The images are still listed (so they can be viewed,
+        // zoomed and downloaded) and all carry the portfolio's single status.
+        $portfolioReview = $images->isEmpty()
+            ? null
+            : $this->item($reviews, 'portfolio_image', self::PORTFOLIO_REF, 'Photography portfolio', self::portfolioFingerprint($images), "{$base}/portfolio");
+        $portfolioStatus = $portfolioReview['status'] ?? 'pending';
+
+        $portfolioItems = [];
         foreach ($images as $i => $image) {
-            $items[] = $this->item($reviews, 'portfolio_image', (string) $image->id, 'Portfolio image '.($i + 1), $image->path, "{$base}/portfolio/{$image->id}");
+            $portfolioItems[] = [
+                'type' => 'portfolio_image',
+                'ref' => (string) $image->id,
+                'label' => 'Portfolio image '.($i + 1),
+                'filename' => basename($image->path),
+                'extension' => strtolower(pathinfo($image->path, PATHINFO_EXTENSION)),
+                'endpoint' => "{$base}/portfolio/{$image->id}",
+                'status' => $portfolioStatus,
+                'feedback' => $portfolioReview['feedback'] ?? null,
+                'reviewed_at' => $portfolioReview['reviewed_at'] ?? null,
+                'reviewed_by' => $portfolioReview['reviewed_by'] ?? null,
+            ];
         }
 
         $of = fn (string $type) => array_values(array_filter($items, fn ($i) => $i['type'] === $type));
         $additional = $of('additional_document');
-        $portfolio = $of('portfolio_image');
+        $portfolio = $portfolioItems;
         $permit = $of('business_permit');
 
         $businessMissing = $this->missingBusinessFields($application, $isStudio);
@@ -124,13 +158,20 @@ class BuildApplicationChecklistAction
                 $pending++;
             }
         }
+        if ($portfolioReview) {
+            if ($portfolioStatus === 'needs_revision') {
+                $reviewBlockers[] = 'Photography portfolio is flagged for revision.';
+            } elseif ($portfolioStatus === 'pending') {
+                $pending++;
+            }
+        }
         if ($pending > 0) {
             $reviewBlockers[] = "{$pending} submitted item(s) still need to be reviewed.";
         }
 
         // Grouped, field-level view for the admin review modal. Built from the same
         // data and predicates as $requirements above, so both views always agree.
-        $groups = $this->buildGroups($application, $isStudio, $items);
+        $groups = $this->buildGroups($application, $isStudio, $items, $portfolioItems, $portfolioReview);
 
         $groupMissing = [];
         foreach ($groups as $g) {
@@ -148,13 +189,17 @@ class BuildApplicationChecklistAction
 
         $required = array_values(array_filter($requirements, fn ($r) => $r['required']));
         $statuses = array_count_values(array_column($items, 'status'));
+        if ($portfolioReview) {
+            // The whole portfolio counts as ONE reviewable item.
+            $statuses[$portfolioStatus] = ($statuses[$portfolioStatus] ?? 0) + 1;
+        }
         $groupRequiredTotal = array_sum(array_column($groups, 'required_total'));
         $groupRequiredSubmitted = array_sum(array_column($groups, 'required_submitted'));
 
         return [
             'requirements' => $requirements,
             'groups' => $groups,
-            'items' => $items,
+            'items' => array_merge($items, $portfolioItems),
             'problems' => $problems,
             'summary' => [
                 'required_total' => $groupRequiredTotal,
@@ -163,7 +208,7 @@ class BuildApplicationChecklistAction
                 'pending_count' => $statuses['pending'] ?? 0,
                 'needs_revision_count' => $statuses['needs_revision'] ?? 0,
                 'reviewed_count' => $statuses['reviewed'] ?? 0,
-                'reviewable_total' => count($items),
+                'reviewable_total' => count($items) + ($portfolioReview ? 1 : 0),
                 'ready_for_approval' => $problems === [] && $reviewBlockers === [],
                 'blockers' => array_merge($problems, $reviewBlockers),
             ],
@@ -380,7 +425,7 @@ class BuildApplicationChecklistAction
         ];
     }
 
-    private function buildGroups(PhotographerApplication $application, bool $isStudio, array $items): array
+    private function buildGroups(PhotographerApplication $application, bool $isStudio, array $items, array $portfolioItems, ?array $portfolioReview): array
     {
         $of = fn (string $type) => array_values(array_filter($items, fn ($i) => $i['type'] === $type));
         $user = $application->user;
@@ -410,6 +455,15 @@ class BuildApplicationChecklistAction
         } elseif ($priceMin !== null || $priceMax !== null) {
             $price = '₱'.number_format((float) ($priceMin ?? $priceMax));
         }
+
+        // Portfolio row: counted as ONE item, with the status of the single portfolio review.
+        $portfolioRow = $this->fileRow('portfolio', 'Portfolio images', true, $portfolioItems, self::PORTFOLIO_MIN, self::PORTFOLIO_MAX);
+        $pStatus = $portfolioReview['status'] ?? null;
+        $portfolioRow['item_counts'] = [
+            'pending' => $pStatus === 'pending' ? 1 : 0,
+            'reviewed' => $pStatus === 'reviewed' ? 1 : 0,
+            'needs_revision' => $pStatus === 'needs_revision' ? 1 : 0,
+        ];
 
         $docs = [
             $this->fileRow('government_id', 'Government ID', true, $of('government_id')),
@@ -472,9 +526,7 @@ class BuildApplicationChecklistAction
             $this->group('photography', 'Photography Details', $photography),
             $this->group('services', 'Services and Pricing', $services),
             $this->group('business', 'Business Profile', $business),
-            $this->group('portfolio', 'Photography Portfolio', [
-                $this->fileRow('portfolio', 'Portfolio images', true, $of('portfolio_image'), self::PORTFOLIO_MIN, self::PORTFOLIO_MAX),
-            ]),
+            $this->group('portfolio', 'Photography Portfolio', [$portfolioRow]),
             $this->group('social', 'Social Links', $social),
         ];
     }

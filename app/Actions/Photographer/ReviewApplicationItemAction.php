@@ -78,13 +78,15 @@ class ReviewApplicationItemAction
             }
         }
 
-        if ($type === 'portfolio_image') {
-            $image = PhotographerPortfolioImage::query()
+        // The portfolio is reviewed as one unit. The stored file_path is a fingerprint of the
+        // current images, so changing the images invalidates the review (back to pending).
+        if ($type === 'portfolio_image' && $ref === BuildApplicationChecklistAction::PORTFOLIO_REF) {
+            $images = PhotographerPortfolioImage::query()
                 ->where('user_id', $application->user_id)
                 ->where('status', PortfolioImageStatus::Active)
-                ->find($ref);
-            if ($image) {
-                return [(string) $image->id, $image->path, 'Portfolio image'];
+                ->get(['id', 'path']);
+            if ($images->isNotEmpty()) {
+                return [$ref, BuildApplicationChecklistAction::portfolioFingerprint($images), 'Photography portfolio'];
             }
         }
 
