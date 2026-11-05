@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Client;
 use App\Actions\Client\ChangePasswordAction;
 use App\Actions\Client\DeactivateAccountAction;
 use App\Actions\Client\UpdateClientProfileAction;
+use App\Http\Middleware\EnsureEmailVerifiedForAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\DeactivateAccountRequest;
@@ -29,7 +30,7 @@ class ProfileController extends Controller
     public function update(UpdateClientProfileRequest $request, UpdateClientProfileAction $action)
     {
         if (! $request->user()->hasVerifiedEmail() && $request->hasFile('profile_photo')) {
-            return EnsureEmailVerifiedForAction::deny();
+           return EnsureEmailVerifiedForAction::deny();
         }
         $profile = $action->execute($request->user(), $request->validated(), $request->file('profile_photo'));
         $profile->setRelation('user', $request->user()->fresh());

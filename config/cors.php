@@ -19,9 +19,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173', 'http://localhost:8080'],
+    'allowed_origins' => ['http://localhost:5173',
+	'http://localhost:8080',
+	'https://capstone-frontend-theta-navy.vercel.app',
+	],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => ['#^https://capstone-frontend.*\.vercel\.app$#'],
 
     'allowed_headers' => ['*'],
 

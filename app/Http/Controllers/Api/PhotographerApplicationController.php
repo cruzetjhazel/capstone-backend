@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Middleware\EnsureEmailVerifiedForAction;
 use App\Actions\Photographer\ReapplyPhotographerApplicationAction;
 use App\Actions\Photographer\SubmitPhotographerApplicationAction;
 use App\Actions\Photographer\UpdatePhotographerApplicationAction;
