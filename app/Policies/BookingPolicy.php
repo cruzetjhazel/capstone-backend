@@ -22,6 +22,11 @@ class BookingPolicy
         return $user->id === $booking->client_id;
     }
 
+    public function confirmCompletion(User $user, Booking $booking): bool
+    {
+        return $user->id === $booking->client_id;
+    }
+
     public function requestReschedule(User $user, Booking $booking): bool
     {
         return $user->id === $booking->client_id;

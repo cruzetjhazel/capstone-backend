@@ -107,6 +107,15 @@ $booking = \Illuminate\Support\Facades\DB::transaction(function () use ($request
 
         return $this->success(new BookingResource($booking), 'Dispute submitted.');
     }
+        /** The client confirms the delivered service themselves; completes the booking immediately, even inside the 48-hour window. */
+    public function confirmCompletion(Booking $booking, \App\Actions\Booking\MarkServiceCompletedAction $action)
+    {
+        $this->authorize('confirmCompletion', $booking);
+
+        $booking = $action->execute($booking, \App\Actions\Booking\MarkServiceCompletedAction::BY_CLIENT);
+
+        return $this->success(new BookingResource($booking), 'Booking completed. Thank you for confirming.');
+    }
 
         public function acceptOffer(Request $request, Booking $booking, \App\Actions\Booking\AcceptSlotOfferAction $action)
     {

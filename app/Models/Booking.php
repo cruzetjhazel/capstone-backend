@@ -668,6 +668,7 @@ class Booking extends Model
             'can_postpone' => $this->isEligibleForPostponement() && $noPendingChange && $singleSession,
             'can_cancel' => $open && ! $this->hasPendingCancellationRequest(),
             'can_report_photographer_no_show' => $this->canClientReportPhotographerNoShow(),
+            'can_confirm_completion' => $this->canCompleteService() && ! $this->hasPendingNoShowReport(),
             'no_show_report_deadline' => $deadline?->toISOString(),
             'no_show_report_expired' => in_array($this->status, [BookingStatus::Confirmed, BookingStatus::Completed], true)
                 && $this->non_completion_reason === null

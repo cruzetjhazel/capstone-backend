@@ -238,6 +238,7 @@ Route::middleware('auth:sanctum')->group(function () {
    Route::post('bookings/{booking}/decline-offer', [ClientBookingController::class, 'declineOffer']);
         Route::post('bookings/{booking}/report-non-completion', [ClientBookingController::class, 'reportNonCompletion']);
         Route::post('bookings/{booking}/dispute-non-completion', [ClientBookingController::class, 'disputeNonCompletion']);
+        Route::post('bookings/{booking}/confirm-completion', [ClientBookingController::class, 'confirmCompletion']);
         Route::post('bookings/{booking}/reschedule', [ClientBookingController::class, 'requestReschedule']);
         Route::get('bookings/{booking}/reschedule-slots', [ClientBookingController::class, 'rescheduleSlots']);
         Route::post('bookings/{booking}/request-modification', [ClientBookingController::class, 'requestModification']);

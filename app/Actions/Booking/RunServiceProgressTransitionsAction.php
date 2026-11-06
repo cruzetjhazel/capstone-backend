@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Notifications\Booking\ServiceTrackerUpdatedNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class RunServiceProgressTransitionsAction
 {
@@ -23,6 +24,7 @@ class RunServiceProgressTransitionsAction
     {
         return [
             'moved_to_event_day' => $this->markEventDay(),
+            'auto_completed' => $this->autoCompleteDelivered(),
         ];
     }
 
@@ -121,8 +123,58 @@ class RunServiceProgressTransitionsAction
             ->first();
     }
 
-    // NOTE: booking completion is intentionally NOT handled here. Reaching
-    // Delivered no longer auto-completes a booking — completion only happens
-    // when the photographer explicitly clicks "Mark Service as Completed"
-    // (MarkServiceCompletedAction / POST .../bookings/{booking}/complete).
+    /**
+     * Delivered bookings the client never confirmed: once the client's 48-hour window
+     * (scheduled end + 48h) has passed, mark them Completed. Reaching Delivered alone
+     * never completes a booking.
+     */
+    private function autoCompleteDelivered(): int
+    {
+        $completed = 0;
+
+        Booking::query()
+            ->where('status', BookingStatus::Confirmed)
+            ->where('service_status', ServiceTrackerStatus::Delivered)
+            ->chunkById(100, function ($candidates) use (&$completed) {
+                foreach ($candidates as $candidate) {
+                    if ($this->autoComplete($candidate->id)) {
+                        $completed++;
+                    }
+                }
+            });
+
+        return $completed;
+    }
+
+    private function autoComplete(int $bookingId): bool
+    {
+        try {
+            return DB::transaction(function () use ($bookingId) {
+                // Re-read under a lock and re-check: the client may have confirmed or reported since the query ran.
+                $booking = Booking::whereKey($bookingId)->lockForUpdate()->first();
+
+                if ($booking === null || ! $this->isDueForAutoCompletion($booking)) {
+                    return false;
+                }
+
+                app(MarkServiceCompletedAction::class)->execute($booking, MarkServiceCompletedAction::BY_SYSTEM);
+
+                return true;
+            });
+        } catch (ValidationException $e) {
+            return false;
+        }
+    }
+
+    /** Delivered, no no-show report waiting, and the 48-hour window has a real end that has passed (never guessed). */
+    private function isDueForAutoCompletion(Booking $booking): bool
+    {
+        if (! $booking->canCompleteService() || $booking->hasPendingNoShowReport()) {
+            return false;
+        }
+
+        $deadline = $booking->noShowReportDeadline();
+
+        return $deadline !== null && now()->gt($deadline);
+    }
 }
