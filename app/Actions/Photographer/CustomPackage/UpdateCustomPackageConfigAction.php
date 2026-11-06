@@ -8,11 +8,21 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateCustomPackageConfigAction
 {
+    /**
+     * Request keys that describe pricing. A request carrying none of these is a
+     * plain on/off (or buffer-only) save from the Custom Package switch.
+     */
+    private const PRICING_KEYS = [
+        'pricing_model', 'base_fee', 'hourly_rate', 'outdoor_hourly_rate',
+        'min_hours', 'max_hours', 'unit_rate', 'coverage_hours',
+        'max_people', 'allows_multiple_sessions', 'max_sessions',
+    ];
+
     public function execute(User $user, array $data): CustomPackageConfig
     {
         $existing = CustomPackageConfig::where('user_id', $user->id)->first();
 
-        // A key the request omitted keeps its stored value — separate Save
+        // A key the request omitted keeps its stored value - separate Save
         // buttons (buffer time, on/off) must never wipe out pricing fields.
         $keep = fn (string $key, $default = null) => array_key_exists($key, $data)
             ? $data[$key]
@@ -51,22 +61,48 @@ class UpdateCustomPackageConfigAction
             'base_fee_mode' => null,
         ];
 
-        // An enabled custom package must have a price, otherwise clients could book it for free.
-        // `$values` already merges stored values, so a toggle-only save keeps working.
-        if ($values['enabled']) {
-            $rateField = match ($model) {
-                'hourly' => 'hourly_rate',
-                'per_day', 'per_person' => 'unit_rate',
-                default => 'base_fee',
-            };
+        // Turning the calculator ON is allowed before any price exists: the studio
+        // enables it first, then sets rates in the Custom Package tab. Clients
+        // must not be able to use it until a price is set (see isPriced()).
+        //
+        // Saving pricing while enabled still requires a real price, so the
+        // stored config can never be "enabled with a free calculator".
+        $isToggleOnly = count(array_intersect(self::PRICING_KEYS, array_keys($data))) === 0;
 
-            if ($values[$rateField] === null) {
-                throw ValidationException::withMessages([
-                    $rateField => ['Set a price before enabling custom packages.'],
-                ]);
-            }
+        if ($values['enabled'] && ! $isToggleOnly && ! self::hasPrice($values, $model)) {
+            $rateField = self::rateField($model);
+
+            throw ValidationException::withMessages([
+                $rateField => ['Set a price greater than 0 for the selected pricing model.'],
+            ]);
         }
 
         return CustomPackageConfig::updateOrCreate(['user_id' => $user->id], $values);
+    }
+
+    /** The column holding the main price for a pricing model. */
+    public static function rateField(string $model): string
+    {
+        return match ($model) {
+            'hourly' => 'hourly_rate',
+            'per_day', 'per_person' => 'unit_rate',
+            default => 'base_fee',
+        };
+    }
+
+    /** True when the active pricing model has a price above zero. */
+    public static function hasPrice(array|CustomPackageConfig $config, ?string $model = null): bool
+    {
+        $get = fn (string $key) => is_array($config) ? ($config[$key] ?? null) : $config->{$key};
+
+        $model ??= $get('pricing_model') ?: ($get('hourly_rate') !== null ? 'hourly' : 'fixed');
+
+        return (float) ($get(self::rateField($model)) ?? 0) > 0;
+    }
+
+    /** True when the config is on AND priced, i.e. safe to show clients. */
+    public static function isPriced(CustomPackageConfig $config): bool
+    {
+        return (bool) $config->enabled && self::hasPrice($config);
     }
 }
