@@ -76,7 +76,7 @@ class BookingController extends Controller
         $query = Booking::with([
             'client:id,name,email,phone_number',
             'photographer:id,name',
-            'photographer.photographerApplication:id,user_id,photographer_type',
+            'photographer.photographerApplication:id,user_id,photographer_type,is_freelancer,is_studio_owner',
             'package:id,name',
         ]);
 
@@ -159,7 +159,7 @@ class BookingController extends Controller
         $booking->load([
             'client:id,name,email,phone_number',
             'photographer:id,name',
-            'photographer.photographerApplication:id,user_id,photographer_type',
+            'photographer.photographerApplication:id,user_id,photographer_type,is_freelancer,is_studio_owner',
             'package:id,name',
         ]);
 
@@ -240,7 +240,12 @@ class BookingController extends Controller
             'clientPhone' => $b->client?->phone_number,
             'photographer' => $b->photographer?->name ?? 'Unknown professional',
             'photographerId' => $b->photographer_id,
-            'professionalType' => $b->photographer?->photographerApplication?->photographer_type?->value === 'studio' ? 'Studio' : 'Freelancer',
+            'professionalType' => collect([
+                ($b->photographer?->photographerApplication?->is_freelancer
+                    ?? $b->photographer?->photographerApplication?->photographer_type?->value === 'freelancer') ? 'Freelancer' : null,
+                ($b->photographer?->photographerApplication?->is_studio_owner
+                    ?? $b->photographer?->photographerApplication?->photographer_type?->value === 'studio') ? 'Studio Owner' : null,
+            ])->filter()->implode(' + ') ?: 'Photographer',
             'event' => $b->custom_event_type ?? (string) $b->event_type,
             'eventLocation' => $b->location_type?->value ?? (string) $b->location_type,
             'eventAddress' => $b->event_address,
