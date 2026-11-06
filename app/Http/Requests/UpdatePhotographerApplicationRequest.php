@@ -21,6 +21,7 @@ class UpdatePhotographerApplicationRequest extends FormRequest
             'location' => ['sometimes', 'nullable', 'string', 'max:255'],
             'years_active' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:80'],
             'team_size' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:500'],
+            'freelance_years_experience' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:80'],
             'services' => ['sometimes', 'nullable', 'array'],
             'services.*' => ['string', 'max:100'],
             'other_services' => ['sometimes', 'nullable', 'string', 'max:500'],

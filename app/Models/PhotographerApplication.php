@@ -24,6 +24,7 @@ class PhotographerApplication extends Model
         'business_name',
         'location',
         'years_active',
+        'freelance_years_experience',
         'team_size',
         'services',
         'other_services',

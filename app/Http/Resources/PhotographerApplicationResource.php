@@ -21,6 +21,7 @@ class PhotographerApplicationResource extends JsonResource
             'business_name' => $this->business_name,
             'location' => $this->location,
             'years_active' => $this->years_active,
+            'freelance_years_experience' => $this->freelance_years_experience,
             'team_size' => $this->team_size,
             'services' => $this->services,
             'other_services' => $this->other_services,

@@ -286,6 +286,7 @@ class BuildApplicationChecklistAction
         if (blank($application->location)) $missing[] = 'location';
         if ($application->years_active === null) $missing[] = 'years active';
         if ($isStudio && empty($application->team_size)) $missing[] = 'team size';
+        if ($isStudio && $application->is_freelancer && $application->freelance_years_experience === null) $missing[] = 'freelance years of experience';
         if (empty($application->services)) $missing[] = 'services';
         if (blank($application->coverage_area)) $missing[] = 'coverage area';
         if (empty($application->shooting_types)) $missing[] = 'shooting types';
@@ -490,6 +491,8 @@ class BuildApplicationChecklistAction
         ];
         if (! $isStudio) {
             $photography[] = $this->fieldRow('years_experience', 'Years of experience', true, $application->years_active !== null ? (string) $application->years_active : null, $application->years_active !== null);
+        } elseif ($application->is_freelancer) {
+            $photography[] = $this->fieldRow('freelance_years_experience', 'Years of freelance experience', true, $application->freelance_years_experience !== null ? (string) $application->freelance_years_experience : null, $application->freelance_years_experience !== null);
         }
         $photography[] = $this->fieldRow('styles', 'Photography styles', true, $styles, $styles !== []);
 

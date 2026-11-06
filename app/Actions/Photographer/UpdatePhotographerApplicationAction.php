@@ -37,7 +37,7 @@ class UpdatePhotographerApplicationAction
 
         $fields = collect($data)->only([
             'is_freelancer', 'is_studio_owner',
-            'business_name', 'location', 'years_active', 'team_size',
+            'business_name', 'location', 'years_active', 'team_size', 'freelance_years_experience',
             'services', 'other_services', 'coverage_area', 'shooting_types',
             'price_min', 'price_max',
         ])->toArray();
@@ -54,6 +54,14 @@ class UpdatePhotographerApplicationAction
 
             // Keep the legacy single column in sync, same rule as RegisterPhotographerAction.
             $fields['photographer_type'] = $isStudioOwner ? PhotographerType::Studio : PhotographerType::Freelancer;
+        }
+
+        // Freelance years only applies to someone who is both a freelancer and
+        // a studio owner; clear it when the classification no longer fits.
+        if (array_key_exists('is_freelancer', $fields) || array_key_exists('is_studio_owner', $fields)) {
+            if (! ($isFreelancer && $isStudioOwner)) {
+                $fields['freelance_years_experience'] = null;
+            }
         }
 
         if (! empty($fields['shooting_types']) && in_array('hybrid', $fields['shooting_types'], true)) {
