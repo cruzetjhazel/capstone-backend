@@ -96,6 +96,25 @@ class PhotographerApplicationController extends Controller
         return Storage::disk('local')->response($path);
     }
 
+    /**
+     * View one of the additional proof documents the photographer uploaded.
+     * {index} is the zero-based position in additional_document_paths.
+     * Read-only, same private disk as the other verification documents.
+     */
+    public function downloadAdditionalDocument(Request $request, int $index)
+    {
+        $application = $this->applicationFor($request);
+        $this->authorize('view', $application);
+
+        $paths = array_values($application->additional_document_paths ?? []);
+        $path = $paths[$index] ?? null;
+
+        abort_if(empty($path), 404, 'Document not found.');
+        abort_unless(Storage::disk('local')->exists($path), 404, 'Document not found.');
+
+        return Storage::disk('local')->response($path);
+    }
+
     public function submit(Request $request, SubmitPhotographerApplicationAction $action)
     {
         $application = $this->applicationFor($request);

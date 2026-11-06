@@ -92,6 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('application/submit', [PhotographerApplicationController::class, 'submit']);
         Route::post('application/reapply', [PhotographerApplicationController::class, 'reapply']);
         Route::get('application/documents/{type}', [PhotographerApplicationController::class, 'downloadDocument']);
+        Route::get('application/additional-documents/{index}', [PhotographerApplicationController::class, 'downloadAdditionalDocument'])->whereNumber('index');
         });
 
     Route::prefix('admin/photographer-applications')->group(function () {
