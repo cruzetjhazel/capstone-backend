@@ -52,13 +52,16 @@ class ReportController extends Controller
             ->when($request->filled('search'), fn ($q) =>
                 $q->where('name', 'like', '%'.$request->string('search')->toString().'%')
             )
-            ->with('photographerApplication:id,user_id,photographer_type')
+            ->with(['photographerApplication:id,user_id,photographer_type', 'photographerProfile'])
             ->orderBy('name')
             ->limit(20)
-            ->get(['id', 'name'])
+            ->get()
             ->map(fn ($u) => [
                 'id' => $u->id,
                 'name' => $u->name,
+                'avatar' => $u->photographerProfile?->profile_photo_path
+                    ? \Illuminate\Support\Facades\Storage::disk('public')->url($u->photographerProfile->profile_photo_path)
+                    : null,
                 'type' => $u->photographerApplication?->photographer_type?->value === 'studio' ? 'Studio' : 'Freelancer',
             ])
             ->values();
