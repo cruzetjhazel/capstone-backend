@@ -338,6 +338,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('client')->group(function () {
         Route::get('reports', [ReportController::class, 'index']);
+        Route::get('reports/photographers', [ReportController::class, 'photographers']);
         Route::post('reports', [ReportController::class, 'store'])->middleware('verified.action');
         Route::get('reports/{report}', [ReportController::class, 'show']);
     });

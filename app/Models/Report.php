@@ -47,6 +47,27 @@ class Report extends Model
         return $this->hasMany(ReportNote::class);
     }
 
+    /**
+     * Readable name for the record this report points at (e.g. "Booking BK-0012",
+     * a photographer's name, a payment reference). Null when there is nothing to
+     * resolve: older typed-in references, or bug/other reports.
+     */
+    public function referenceLabel(): ?string
+    {
+        if (! $this->reference_id || ! ctype_digit((string) $this->reference_id)) {
+            return null;
+        }
+
+        return match ($this->target_type) {
+            ReportTargetType::Booking => 'Booking BK-'.str_pad((string) $this->reference_id, 4, '0', STR_PAD_LEFT),
+            ReportTargetType::Payment => ($payment = Payment::find($this->reference_id))
+                ? 'Payment '.($payment->reference_number ?: '#'.$payment->id)
+                : null,
+            ReportTargetType::Studio => User::find($this->reference_id)?->name,
+            default => null,
+        };
+    }
+
     /** Display-friendly reference code, e.g. "RPT-00042". */
     public function referenceCode(): string
     {

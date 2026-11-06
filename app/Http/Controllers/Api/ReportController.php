@@ -37,6 +37,35 @@ class ReportController extends Controller
         return $this->success(new ReportResource($report), 'Report submitted.', 201);
     }
 
+    /** GET /client/reports/photographers?search= — small list for the Report a Problem picker. */
+    public function photographers(Request $request)
+    {
+        abort_unless($request->user()->isClient(), 403);
+
+        $request->validate(['search' => ['nullable', 'string', 'max:100']]);
+
+        $photographers = \App\Models\User::query()
+            ->where('account_type', \App\Enums\AccountType::Photographer)
+            ->whereHas('photographerApplication', fn ($q) =>
+                $q->where('status', \App\Enums\PhotographerApplicationStatus::Approved)
+            )
+            ->when($request->filled('search'), fn ($q) =>
+                $q->where('name', 'like', '%'.$request->string('search')->toString().'%')
+            )
+            ->with('photographerApplication:id,user_id,photographer_type')
+            ->orderBy('name')
+            ->limit(20)
+            ->get(['id', 'name'])
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'type' => $u->photographerApplication?->photographer_type?->value === 'studio' ? 'Studio' : 'Freelancer',
+            ])
+            ->values();
+
+        return $this->success($photographers);
+    }
+
     public function show(Request $request, Report $report)
     {
         $this->authorize('view', $report);

@@ -14,6 +14,7 @@ class ReportResource extends JsonResource
             'reference_code' => $this->referenceCode(),
             'target_type' => $this->target_type,
             'reference_id' => $this->reference_id,
+            'reference_label' => $this->referenceLabel(),
             'reason' => $this->reason,
             'severity' => $this->severity,
             'details' => $this->details,

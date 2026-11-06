@@ -200,6 +200,7 @@ class ReportController extends Controller
             'reporterRole' => $this->reporterRole($r->reporter),
             'reportType' => self::TARGET_TYPE_LABELS[$targetTypeValue] ?? $targetTypeValue,
             'referenceId' => $r->reference_id ?: 'N/A',
+            'referenceLabel' => $r->referenceLabel(),
             'reason' => $r->reason,
             'severity' => $severityValue,
             'severityLabel' => self::SEVERITY_LABELS[$severityValue] ?? $severityValue,

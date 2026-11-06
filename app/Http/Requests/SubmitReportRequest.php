@@ -36,7 +36,8 @@ class SubmitReportRequest extends FormRequest
             // other target types, which don't necessarily have one.
             'reference_id' => [
                 'nullable', 'string', 'max:100',
-                Rule::requiredIf(fn () => $this->input('target_type') === ReportTargetType::Booking->value),
+                Rule::requiredIf(fn () => $this->input('target_type') === ReportTargetType::Booking->value
+                    || (! $isPhotographer && $this->input('target_type') === ReportTargetType::Studio->value)),
             ],
             'reason' => ['required', 'string', 'max:255'],
             'severity' => ['required', Rule::enum(ReportSeverity::class)],
@@ -47,22 +48,77 @@ class SubmitReportRequest extends FormRequest
         ];
     }
 
+        protected function prepareForValidation(): void
+    {
+        // Bug / "other" reports never carry a record.
+        if (in_array($this->input('target_type'), [ReportTargetType::Bug->value, ReportTargetType::Other->value], true)) {
+            $this->merge(['reference_id' => null]);
+        }
+    }
+
+    public function messages(): array
+    {
+        return [
+            'reference_id.required' => 'Please select the record you are reporting.',
+            'evidence.max' => 'You can attach up to 3 files.',
+            'evidence.*.mimes' => 'Attachments must be PNG, JPG, JPEG or PDF files.',
+            'evidence.*.max' => 'Each attachment must be 2 MB or smaller.',
+            'evidence.*.uploaded' => 'An attachment could not be uploaded. Make sure each file is 2 MB or smaller.',
+        ];
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if ($this->input('target_type') !== \App\Enums\ReportTargetType::Booking->value || ! $this->filled('reference_id')) {
+            if (! $this->filled('reference_id')) {
                 return;
             }
 
-            $isPhotographer = $this->user()->account_type === AccountType::Photographer;
-            $ownerColumn = $isPhotographer ? 'photographer_id' : 'client_id';
+            $type = $this->input('target_type');
+            $reference = (string) $this->input('reference_id');
+            $user = $this->user();
+            $isPhotographer = $user->account_type === AccountType::Photographer;
 
-            $owns = \App\Models\Booking::where('id', $this->input('reference_id'))
-                ->where($ownerColumn, $this->user()->id)
-                ->exists();
+            if ($type === ReportTargetType::Booking->value) {
+                $ownerColumn = $isPhotographer ? 'photographer_id' : 'client_id';
+                $owns = ctype_digit($reference)
+                    && \App\Models\Booking::where('id', $reference)->where($ownerColumn, $user->id)->exists();
 
-            if (! $owns) {
-                $validator->errors()->add('reference_id', 'This booking does not belong to you.');
+                if (! $owns) {
+                    $validator->errors()->add('reference_id', 'This booking does not belong to you.');
+                }
+
+                return;
+            }
+
+            // Photographers keep their existing free-text references.
+            if ($isPhotographer) {
+                return;
+            }
+
+            if ($type === ReportTargetType::Payment->value) {
+                $owns = ctype_digit($reference)
+                    && \App\Models\Payment::whereKey($reference)
+                        ->whereHas('booking', fn ($q) => $q->where('client_id', $user->id))
+                        ->exists();
+
+                if (! $owns) {
+                    $validator->errors()->add('reference_id', 'This payment does not belong to you.');
+                }
+            }
+
+            if ($type === ReportTargetType::Studio->value) {
+                $exists = ctype_digit($reference)
+                    && \App\Models\User::whereKey($reference)
+                        ->where('account_type', AccountType::Photographer)
+                        ->whereHas('photographerApplication', fn ($q) =>
+                            $q->where('status', \App\Enums\PhotographerApplicationStatus::Approved)
+                        )
+                        ->exists();
+
+                if (! $exists) {
+                    $validator->errors()->add('reference_id', 'Please select a registered photographer or studio.');
+                }
             }
         });
     }
