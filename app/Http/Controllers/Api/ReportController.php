@@ -34,7 +34,7 @@ class ReportController extends Controller
             $request->file('evidence', [])
         );
 
-        return $this->success(new ReportResource($report), 'Report submitted.', 201);
+        return $this->success(new ReportResource($report->load('notes')), 'Report submitted.', 201);
     }
 
     /** GET /client/reports/photographers?search= — small list for the Report a Problem picker. */
