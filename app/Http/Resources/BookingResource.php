@@ -29,7 +29,13 @@ class BookingResource extends JsonResource
     ?? ($showContact ? $this->client?->phone_number : null),
 'email' => $this->walkInClient?->email ?? ($showContact ? $this->client?->email : null),
             ],
-            'photographer' => ['id' => $this->photographer->id, 'name' => $this->photographer->name],
+            'photographer' => [
+                'id' => $this->photographer->id,
+                'name' => $this->photographer->name,
+                'avatar' => $this->photographer->photographerProfile?->profile_photo_path
+                    ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->photographer->photographerProfile->profile_photo_path)
+                    : null,
+            ],
             'is_custom_package' => $this->is_custom_package,
             'package_snapshot' => $this->package_snapshot,
             'custom_package_snapshot' => $this->custom_package_snapshot,
