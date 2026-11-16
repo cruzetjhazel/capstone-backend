@@ -28,7 +28,7 @@ class AuthController extends Controller
 
     public function register(RegisterClientRequest $request, RegisterClientAction $action)
     {
-        return $this->registerAndSignIn(
+        return $this->registerWithGenericResponse(
             $request->validated(),
             fn (array $data) => $action->execute($data)
         );
@@ -303,7 +303,7 @@ class AuthController extends Controller
     }
         public function registerPhotographer(RegisterPhotographerRequest $request, RegisterPhotographerAction $action)
     {
-        return $this->registerAndSignIn(
+        return $this->registerWithGenericResponse(
             $request->validated(),
             fn (array $data) => $action->execute($data)
         );
