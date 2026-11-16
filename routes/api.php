@@ -89,8 +89,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('photographer')->group(function () {
         Route::get('application', [PhotographerApplicationController::class, 'show']);
         Route::patch('application', [PhotographerApplicationController::class, 'update']);
-        Route::post('application/submit', [PhotographerApplicationController::class, 'submit']);
-        Route::post('application/reapply', [PhotographerApplicationController::class, 'reapply']);
+        Route::post('application/submit', [PhotographerApplicationController::class, 'submit'])->middleware('verified.action');
+        Route::post('application/reapply', [PhotographerApplicationController::class, 'reapply'])->middleware('verified.action');
         Route::get('application/documents/{type}', [PhotographerApplicationController::class, 'downloadDocument']);
         Route::get('application/additional-documents/{index}', [PhotographerApplicationController::class, 'downloadAdditionalDocument'])->whereNumber('index');
         });
