@@ -121,7 +121,7 @@ return [
 
     // How long an emailed verification link stays valid, in minutes.
     'verification' => [
-        'expire' => (int) env('AUTH_VERIFICATION_EXPIRE', 60),
+        'expire' => (int) env('AUTH_VERIFICATION_EXPIRE', 1440),
     ],
 
 ];
