@@ -64,6 +64,7 @@ class NotificationController extends Controller
                 'title' => $data['title'] ?? '',
                 'description' => $data['description'] ?? '',
                 'booking_id' => isset($data['booking_id']) ? (string) $data['booking_id'] : null,
+                'application_id' => isset($data['application_id']) ? (string) $data['application_id'] : null,
                 'action' => $data['action'] ?? null,
                 'read' => $notification->read_at !== null,
                 'created_at' => optional($notification->created_at)->toIso8601String(),
