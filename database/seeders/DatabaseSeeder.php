@@ -29,10 +29,13 @@ class DatabaseSeeder extends Seeder
         $this->call(PhotographerShowcaseSeeder::class);
         $this->call(CatalogShowcaseSeeder::class);
         $this->call(BookingStatesShowcaseSeeder::class);
+        $this->call(PaymentStatesShowcaseSeeder::class); 
+$this->call(ServiceTrackerShowcaseSeeder::class);  
         $this->call(ScenarioMatrixSeeder::class);
         $this->call(ApplicationStatesSeeder::class);
         $this->call(BookingLocationSeeder::class);
  
         $this->call(TestClientSeeder::class);
+        $this->call(NotificationShowcaseSeeder::class); // must run last so it can link to real bookings
     }
 }
