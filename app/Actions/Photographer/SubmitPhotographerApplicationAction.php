@@ -4,6 +4,11 @@ namespace App\Actions\Photographer;
 
 use App\Enums\PhotographerApplicationStatus;
 use App\Models\PhotographerApplication;
+use App\Enums\AccountStatus;
+use App\Enums\AccountType;
+use App\Models\User;
+use App\Notifications\PhotographerApplicationSubmittedNotification;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class SubmitPhotographerApplicationAction
@@ -29,7 +34,24 @@ class SubmitPhotographerApplicationAction
             'revision_notes' => null,
         ])->save();
 
-        return $application->fresh();
+        $fresh = $application->fresh();
+
+        $this->notifyAdministrators($fresh);
+
+        return $fresh;
+    }
+
+    private function notifyAdministrators(PhotographerApplication $application): void
+    {
+        try {
+            $admins = User::where('account_type', AccountType::Administrator)
+                ->where('account_status', AccountStatus::Active)
+                ->get();
+
+            Notification::send($admins, new PhotographerApplicationSubmittedNotification($application->loadMissing('user')));
+        } catch (\Throwable $e) {
+            report($e); // a notification failure must never block the submit
+        }
     }
 
     protected function missingFields(PhotographerApplication $application): array
