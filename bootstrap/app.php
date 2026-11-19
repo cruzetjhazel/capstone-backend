@@ -21,7 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'verified.action' => \App\Http\Middleware\EnsureEmailVerifiedForAction::class,
+            'account.type' => \App\Http\Middleware\EnsureAccountType::class,
         ]);
+
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+
+        // API only: never redirect to a login page, so an invalid token returns 401 JSON.
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $e) {
