@@ -6,6 +6,7 @@ use App\Actions\ActivityLog\LogActivityAction;
 use App\Enums\ReportStatus;
 use App\Models\Report;
 use App\Models\User;
+use App\Notifications\ReportSubmittedNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -52,6 +53,18 @@ class SubmitReportAction
             metadata: ['severity' => $data['severity']],
         );
 
-        return $report->fresh();
+        $fresh = $report->fresh();
+
+        // A failed notification must never block the report from being filed.
+        try {
+            User::query()
+                ->where('account_type', 'administrator')
+                ->get()
+                ->each(fn (User $admin) => $admin->notify(new ReportSubmittedNotification($fresh)));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $fresh;
     }
 }

@@ -28,6 +28,7 @@ class SuspensionAppealSubmittedNotification extends Notification
             'title' => 'Suspension Appeal Submitted',
             'description' => "{$name} appealed their account suspension. Review it on the Suspension Appeals page.",
             'booking_id' => null,
+            'appeal_id' => $this->appeal->id,
             'action' => null,
         ];
     }

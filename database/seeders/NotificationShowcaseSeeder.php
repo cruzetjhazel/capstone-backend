@@ -91,13 +91,15 @@ class NotificationShowcaseSeeder extends Seeder
             read: false, minutesAgo: 95);
 
         $this->add($admin, 'system', 'New suspension appeal',
-            'A suspended user submitted an appeal. Open Appeals to decide.', [], read: false, minutesAgo: 240);
+            'A suspended user submitted an appeal. Open Appeals to decide.',
+            ['appeal_id' => $this->firstId('suspension_appeals')], read: false, minutesAgo: 240);
 
         $this->add($admin, 'system', 'New report submitted',
-            'A client reported a photographer for not showing up. Open Reports to review it.', [], read: false, minutesAgo: 400);
+            'A client reported a photographer for not showing up. Open Reports to review it.',
+            ['report_id' => $this->firstId('reports')], read: false, minutesAgo: 400);
 
         $this->add($admin, 'booking', 'Dispute opened on a booking',
-            'The photographer disputed a client\'s non-completion report. Review it in Reports.',
+            'The photographer disputed a client\'s non-completion report. Review it on the booking.',
             ['booking_id' => $booking], read: false, minutesAgo: 60 * 20);
 
         $this->add($admin, 'booking', 'No-show review needed',
@@ -105,7 +107,8 @@ class NotificationShowcaseSeeder extends Seeder
             ['booking_id' => $booking2], read: true, minutesAgo: 60 * 30);
 
         $this->add($admin, 'payment', 'Refund request pending',
-            'A client requested a refund. Open Payments to record it.', [], read: true, minutesAgo: 60 * 48);
+            'A client requested a refund. Open Payments to record it.',
+            ['payment_id' => $this->firstId('payments')], read: true, minutesAgo: 60 * 48);
 
         $this->add($admin, 'system', 'Photographer application approved',
             'You approved an application. The photographer can now manage bookings.', [], read: true, minutesAgo: 60 * 24 * 6);
@@ -275,6 +278,14 @@ class NotificationShowcaseSeeder extends Seeder
     private function userByEmail(string $email): ?User
     {
         return User::where('email', $email)->first();
+    }
+
+    /** Oldest row id in a table, or null if it is empty. */
+    private function firstId(string $table): ?int
+    {
+        $id = DB::table($table)->orderBy('id')->value('id');
+
+        return $id ? (int) $id : null;
     }
 
     private function applicationId(?User $user): ?int
