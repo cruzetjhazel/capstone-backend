@@ -228,7 +228,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('client')->middleware('account.type:client')->group(function () {
         Route::get('bookings', [ClientBookingController::class, 'index']);
-        Route::post('bookings', [ClientBookingController::class, 'store'])->middleware('verified.action');
+        Route::post('bookings', [ClientBookingController::class, 'store'])->middleware(['throttle:20,1', 'verified.action']);
         Route::get('bookings/{booking}', [ClientBookingController::class, 'show']);
         Route::post('bookings/{booking}/request-cancellation', [ClientBookingController::class, 'requestCancellation']);
             Route::post('bookings/{booking}/accept-offer', [ClientBookingController::class, 'acceptOffer']);

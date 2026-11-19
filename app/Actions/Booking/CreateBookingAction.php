@@ -213,6 +213,24 @@ class CreateBookingAction
         ) {
             $photographer = User::where('id', $photographer->id)->lockForUpdate()->firstOrFail();
 
+            // Same client, photographer, date and start time already requested: do not save it again.
+            // lockForUpdate() makes this read the newest committed rows, so two identical requests
+            // sent at the same instant cannot both pass (the lock above makes the second one wait).
+            $duplicate = Booking::query()
+                ->where('client_id', $client->id)
+                ->where('photographer_id', $photographer->id)
+                ->where('event_date', $data['event_date'])
+                ->where('start_time', $data['start_time'])
+                ->whereIn('status', [BookingStatus::Pending, BookingStatus::Confirmed, BookingStatus::Waitlisted])
+                ->lockForUpdate()
+                ->value('id');
+
+            if ($duplicate) {
+                throw ValidationException::withMessages([
+                    'start_time' => ['You already have a booking request with this photographer for this date and time.'],
+                ]);
+            }
+
             if ($endTime !== null) {
                 $this->assertNoConflict($photographer, $data['event_date'], $data['start_time'], $endTime);
             }
