@@ -16,7 +16,7 @@ class AddOnRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'price' => ['required', 'numeric', 'min:0'],
+            'price' => ['required', 'numeric', 'min:0', 'max:9999999.99'],
         ];
     }
 }
