@@ -51,7 +51,7 @@ class ProfileController extends Controller
 
     public function deactivate(DeactivateAccountRequest $request, DeactivateAccountAction $action)
     {
-        $action->execute($request->user());
+        $action->execute($request->user(), $request->validated('password'));
 
         return $this->success(null, 'Your account has been deactivated.');
     }

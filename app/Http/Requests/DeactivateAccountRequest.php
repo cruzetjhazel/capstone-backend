@@ -14,11 +14,17 @@ class DeactivateAccountRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['confirmation' => ['required', Rule::in(['DEACTIVATE'])]];
+        return [
+            'confirmation' => ['required', Rule::in(['DEACTIVATE'])],
+            'password' => ['required', 'string'],
+        ];
     }
 
     public function messages(): array
     {
-        return ['confirmation.in' => 'You must type DEACTIVATE exactly to confirm.'];
+        return [
+            'confirmation.in' => 'You must type DEACTIVATE exactly to confirm.',
+            'password.required' => 'Enter your password to confirm.',
+        ];
     }
 }

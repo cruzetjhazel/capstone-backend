@@ -5,6 +5,7 @@ namespace App\Actions\Client;
 use App\Actions\ActivityLog\LogActivityAction;
 use App\Enums\AccountStatus;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class DeactivateAccountAction
@@ -13,8 +14,14 @@ class DeactivateAccountAction
     {
     }
 
-    public function execute(User $user): User
+    public function execute(User $user, string $password): User
     {
+        if (! Hash::check($password, $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['The password is incorrect.'],
+            ]);
+        }
+
         if ($user->hasOngoingBookings()) {
             throw ValidationException::withMessages([
                 'account' => ['Your account cannot be deactivated while you have ongoing bookings.'],

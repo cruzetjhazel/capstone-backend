@@ -69,10 +69,6 @@ class ProfileController extends Controller
     {
         $action->execute($request->user(), $request->validated('current_password'), $request->validated('password'));
 
-    public function changePassword(ChangePasswordRequest $request, ChangePasswordAction $action)
-    {
-        $action->execute($request->user(), $request->validated('current_password'), $request->validated('password'));
-
         // Sign out every other session. The one used for this request stays signed in.
         $user = $request->user();
         $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
@@ -86,7 +82,7 @@ class ProfileController extends Controller
 
     public function deactivate(DeactivateAccountRequest $request, DeactivateAccountAction $action)
     {
-        $action->execute($request->user());
+        $action->execute($request->user(), $request->validated('password'));
 
         return $this->success(null, 'Your account has been deactivated.');
     }
