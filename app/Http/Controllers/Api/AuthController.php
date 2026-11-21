@@ -21,6 +21,9 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Str;
 use App\Actions\Photographer\RegisterPhotographerAction;
 use App\Http\Requests\RegisterPhotographerRequest;
+use App\Notifications\RegistrationCodeNotification;
+use App\Services\Auth\RegistrationEmailVerifier;
+use Illuminate\Support\Facades\Notification;
 
 class AuthController extends Controller
 {
@@ -301,12 +304,102 @@ class AuthController extends Controller
             }
         });
     }
-        public function registerPhotographer(RegisterPhotographerRequest $request, RegisterPhotographerAction $action)
+    private const PHOTOGRAPHER_REGISTRATION_MESSAGE =
+        'Thank you for applying! If your application can proceed, you can sign in to track its status.';
+
+    /**
+     * Step 1 of photographer registration: email a 6-digit code. The answer is the same
+     * whether or not the email is registered; a registered owner gets the usual
+     * "someone tried to register" notice instead of a code.
+     */
+    public function sendPhotographerCode(Request $request, RegistrationEmailVerifier $verifier)
     {
-        return $this->registerWithGenericResponse(
-            $request->validated(),
-            fn (array $data) => $action->execute($data)
-        );
+        $email = strtolower(trim((string) $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ])['email']));
+
+        // 1 code per minute and 5 per hour for any one address.
+        $hash = sha1($email);
+        $limits = ["reg-code-min:{$hash}" => 1, "reg-code-hour:{$hash}" => 5];
+        $retryAfter = 0;
+        foreach ($limits as $key => $max) {
+            if (RateLimiter::tooManyAttempts($key, $max)) {
+                $retryAfter = max($retryAfter, RateLimiter::availableIn($key));
+            }
+        }
+        if ($retryAfter > 0) {
+            $wait = $retryAfter > 120 ? ceil($retryAfter / 60).' minutes' : "{$retryAfter} seconds";
+            $message = "Please wait {$wait} before requesting another code.";
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'errors' => ['email' => [$message]],
+                'retry_after' => $retryAfter,
+            ], 429)->header('Retry-After', $retryAfter);
+        }
+        RateLimiter::hit("reg-code-min:{$hash}", 60);
+        RateLimiter::hit("reg-code-hour:{$hash}", 3600);
+
+        if (User::whereRaw('LOWER(email) = ?', [$email])->exists()) {
+            Hash::make(Str::random(16)); // same cost as issuing a code
+            $this->scheduleDuplicateNotice($email);
+        } else {
+            $code = $verifier->issueCode($email);
+            app()->terminating(function () use ($email, $code) {
+                try {
+                    Notification::route('mail', $email)->notify(new RegistrationCodeNotification($code));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            });
+        }
+
+        return $this->success(null, 'If this email can be used, we sent a 6-digit code to it.', 202);
+    }
+
+    public function verifyPhotographerCode(Request $request, RegistrationEmailVerifier $verifier)
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+            'code' => ['required', 'digits:6'],
+        ]);
+
+        $proof = $verifier->checkCode($data['email'], $data['code']);
+
+        if (! $proof) {
+            return $this->error('That code is invalid or has expired. Request a new one.', 422);
+        }
+
+        return $this->success(['email_proof' => $proof], 'Email verified.');
+    }
+
+    public function registerPhotographer(RegisterPhotographerRequest $request, RegisterPhotographerAction $action, RegistrationEmailVerifier $verifier)
+    {
+        $data = $request->validated();
+        $email = strtolower(trim((string) $data['email']));
+        $phone = $data['phone_number'] ?? null;
+
+        if (! $verifier->proofIsValid($email, $data['email_proof'] ?? null)) {
+            return $this->error('Your email verification has expired. Please verify your email again.', 422);
+        }
+
+        $taken = User::whereRaw('LOWER(email) = ?', [$email])->exists()
+            || (filled($phone) && UniquePhoneNumber::exists((string) $phone));
+
+        if ($taken) {
+            Hash::make(Str::random(16)); // same cost as creating an account
+        } else {
+            try {
+                $action->execute($data);
+                $verifier->forgetProof($email);
+            } catch (UniqueConstraintViolationException $e) {
+                // Lost a race for the same email or phone: treat as taken.
+            }
+        }
+
+        // Same answer whether or not the account was created, so nothing is revealed.
+        return $this->success(null, self::PHOTOGRAPHER_REGISTRATION_MESSAGE, 202);
     }
 
     private function registerAndSignIn(array $data, callable $create)

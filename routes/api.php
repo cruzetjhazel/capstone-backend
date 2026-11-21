@@ -83,6 +83,8 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+Route::post('auth/register-photographer/send-code', [AuthController::class, 'sendPhotographerCode'])->middleware('throttle:register');
+Route::post('auth/register-photographer/verify-code', [AuthController::class, 'verifyPhotographerCode'])->middleware('throttle:20,1');
 Route::post('auth/register-photographer', [AuthController::class, 'registerPhotographer'])->middleware('throttle:register');
 
 Route::middleware('auth:sanctum')->group(function () {
