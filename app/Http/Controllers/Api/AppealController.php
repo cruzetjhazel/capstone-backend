@@ -45,9 +45,17 @@ class AppealController extends Controller
             ]);
         }
 
-        if (SuspensionAppeal::where('user_id', $user->id)->where('status', 'pending')->exists()) {
+        // One appeal per suspension: any appeal sent since the account was suspended counts.
+        $existing = SuspensionAppeal::where('user_id', $user->id)
+            ->when($user->suspended_at, fn ($q) => $q->where('created_at', '>=', $user->suspended_at))
+            ->latest('id')
+            ->first();
+
+        if ($existing) {
             throw ValidationException::withMessages([
-                'message' => ['You already have an appeal waiting for review.'],
+                'message' => [$existing->status === 'pending'
+                    ? 'You already have an appeal waiting for review.'
+                    : 'You can only appeal once for each suspension.'],
             ]);
         }
 
