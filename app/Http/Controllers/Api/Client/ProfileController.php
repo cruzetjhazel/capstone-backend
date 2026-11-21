@@ -42,6 +42,10 @@ class ProfileController extends Controller
     {
         $action->execute($request->user(), $request->validated('current_password'), $request->validated('password'));
 
+        // Sign out every other session. The one used for this request stays signed in.
+        $user = $request->user();
+        $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+
         return $this->success(null, 'Password changed successfully.');
     }
 
