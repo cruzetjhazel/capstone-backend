@@ -16,6 +16,6 @@ class ChangePasswordAction
             ]);
         }
 
-        $user->update(['password' => $newPassword]);
+                $user->forceFill(['password' => Hash::make($newPassword)])->save();
     }
 }

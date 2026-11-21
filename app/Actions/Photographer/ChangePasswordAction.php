@@ -12,7 +12,7 @@ class ChangePasswordAction
     {
         if (! Hash::check($currentPassword, $user->password)) {
             throw ValidationException::withMessages([
-                'current_password' => ['The provided password does not match your current password.'],
+                                'current_password' => ['The current password is incorrect.'],
             ]);
         }
 
